@@ -56,7 +56,7 @@ NETSH_PROGRAMS = ("\n    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
                   " 65537     1      1  NATIVE     xdp            dropper\n")
 # the kernel's functions the watch scripts' kprobes look for, as a kernel has them: udp_sendmsg and udpv6_sendmsg (the
-# library's net script probes udp_v6_sendmsg, which no kernel read here has: this PC's WSL kernel's kallsyms neither)
+# library's net script probes both from liminal-libs 1.60.0; before, it probed udp_v6_sendmsg, which no kernel has)
 SYMBOLS = ("udp_sendmsg", "udpv6_sendmsg")
 NO_SUDO = "sudo could not run on this machine: [Errno 2] No such file or directory: 'sudo'"  # the library's Shell's
 
@@ -173,15 +173,16 @@ class StandInShell(Shell):
 
 class FakeWindows:
     """powershell.exe as the Windows runtime asks it: eBPF for Windows' three services and its version, Secure Boot,
-    memory integrity and test signing as Windows gives them unelevated (`test_signing` False read from bcdedit's
-    refusal: what the library makes of it), and netsh when eBPF for Windows is installed. Records every script."""
+    memory integrity and test signing as Windows gives them unelevated (test signing off, read from this boot's start
+    options, which any user may read: liminal-libs 1.60.0), and netsh when eBPF for Windows is installed. Records
+    every script."""
 
     def __init__(self, installed=False, running=True, version="1.7.0", secure_boot=True, source="registry", hvci=True,
-                 test_signing=False, readable=True, programs=NETSH_PROGRAMS, netsh_denied=False, fail_services="",
-                 fail_facts=""):
+                 test_signing=False, readable=True, signing_source="boot options", programs=NETSH_PROGRAMS,
+                 netsh_denied=False, fail_services="", fail_facts=""):
         self.installed, self.running, self.version = installed, running, version
         self.facts = {"SecureBoot": secure_boot, "SecureBootSource": source, "Hvci": hvci, "TestSigning": test_signing,
-                      "TestSigningReadable": readable}
+                      "TestSigningReadable": readable, "TestSigningSource": signing_source}
         self.programs, self.netsh_denied = programs, netsh_denied
         self.fail_services, self.fail_facts = fail_services, fail_facts
         self.scripts: list[str] = []

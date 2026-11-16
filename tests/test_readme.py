@@ -1,6 +1,6 @@
 """What the README and the CHANGELOG tell a caller and the user, where the fix is in their words (the plugin's own
 behaviour is tested beside its code): the watch service's asks are logged by the platform until its deferred change; a
-spec's pid is the kernel's numbering inside WSL; a lost Windows source is not said yet; root's rights are each
+spec's pid is the kernel's numbering inside WSL; a lost Windows source ends its watch, said; root's rights are each
 command's, a dump running sh and an unload rm; the bpftool advice for WSL is Ubuntu's alone. Read as text, nothing
 run."""
 from __future__ import annotations
@@ -31,11 +31,12 @@ def test_the_readme_says_a_spec_pid_is_the_kernels_numbering_inside_wsl():
     assert "a watch's spec `pid` is matched against the kernel's too" in readme  # Inside WSL's What is seen
 
 
-def test_the_readme_says_a_windows_source_lost_after_it_opened_is_not_said_yet():
+def test_the_readme_says_a_windows_source_lost_after_it_opened_ends_the_watch():
     readme = words("README.md")
     assert ("On Windows a capture or an ETW session lost after it opened (an adapter removed, a session stopped from "
-            "outside) is not said yet") in readme
-    assert "the plugin's facts call its watches started, not reading" in readme
+            "outside) ends the watch, its `error` in the source's own words") in readme
+    assert "so a watch running is a watch reading" in readme
+    assert "is not said yet" not in readme and "watches started, not reading" not in readme
 
 
 def test_the_readme_says_root_is_read_from_each_command_a_dump_running_sh_and_an_unload_rm():

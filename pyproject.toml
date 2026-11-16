@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "plugin-platform-ebpf"
-version = "0.1.0"  # the plugin's own release (CHANGELOG.md); the app shows it on the Plugins view
+version = "0.1.1"  # the plugin's own release (CHANGELOG.md); the app shows it on the Plugins view
 description = "The eBPF API plugin for Liminal: this machine's eBPF runtime, the Linux-vs-Windows capability matrix, basic functions, and the watch service the firewalls' Filter tabs and trapdoor ask."
 readme = "README.md"
 requires-python = ">=3.10"
 # the library it plugs into (the machine kind: liminal_libs.machines, plugin API 2.2) and its eBPF layer
-# (liminal_libs.ebpf and machines/etw.py, since 1.54.0); 1.57.0 is the floor: from there the Linux runtime applies on
-# any Linux, a WSL distribution included (the user's rule of 2026-11-15), and machines.linux has the WSL helpers (wsl,
-# wsl_generation, systemd_runs), which the plugin still reaches through getattr
-dependencies = ["liminal-libs>=1.57.0"]
+# (liminal_libs.ebpf and machines/etw.py, since 1.54.0); 1.60.0 is the floor: its net watch attaches (udpv6_sendmsg),
+# test signing is read without an administrator and names where (test_signing_source), a lost Windows source ends its
+# watch, and icons.js has eBPF's bee. The Linux runtime applies on any Linux, WSL included, from 1.57.0
+dependencies = ["liminal-libs>=1.60.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

@@ -22,14 +22,16 @@ watch needs only its backend. Whether the runtime is there, and why it cannot lo
 reason to be invalid: the platform detaches a plugin that is not valid, and its tabs and its watch service would go
 with it. `present()`, which the platform's tray asks, agrees with that (True wherever the plugin serves, asking
 nothing), so its icon stays in the tray while the list says it is active; whether this machine's eBPF runtime is there
-is the status' own `present`.
+is the status' own `present`. The one place it serves nothing is a liminal-libs older than its floor, 1.60.0
+(`LIBS_FLOOR`): the platform loads a plugin from its folder whatever its pyproject says, so the plugin checks for
+itself (`libs_too_old`). There its status is not valid and says which library it needs, `present()` is False, its API
+facts say only that, and every hook refuses in the same words, the command line too.
 
 The runtime is read on a thread when the platform attaches the plugin, so the page's first look waits on nothing; a
 one-shot platform command's attach (`once`) reads nothing, as the platform asks of every plugin, and its status reads
 for itself.
 
-**Its icon** is eBPF's bee (`ICON = "ebpf"`), its maker's mark. The mark comes with liminal-libs 1.60.0's icons.js;
-until then the page draws the library's plug.
+**Its icon** is eBPF's bee (`ICON = "ebpf"`), its maker's mark, in liminal-libs' icons.js from 1.60.0.
 
 ### On Linux
 
@@ -53,9 +55,9 @@ inside (below). It is read with bpftool's JSON (`bpftool -j`) and a few /proc an
 - The watch's own command, `sudo -n bpftrace -V`: the library's watch runs bpftrace through sudo whether the platform
   is root or not, so that command, not root and not bpftrace on the platform's user's path, says whether a watch can
   run here (a platform run as root needs sudo installed all the same). The functions its scripts' kprobes attach to
-  are looked for in /proc/kallsyms: today the library's net script probes `udp_v6_sendmsg`, which the kernels read
-  here name `udpv6_sendmsg`, so there a watch with `net` ends at its start, and the watch's row says so, until the
-  library's fix.
+  (`udp_sendmsg` and `udpv6_sendmsg`) are looked for in /proc/kallsyms: where the kernel lacks one, a watch with `net`
+  ends at its start, and the watch's row says so. (Before liminal-libs 1.60.0 the net script probed
+  `udp_v6_sendmsg`, a name no kernel has, so every net watch ended at its start.)
 - What is missing is said: bpftool not answering, bpftrace not found, no kernel BTF, the BPF filesystem not mounted.
 
 ### On Windows
@@ -64,14 +66,15 @@ The runtime is eBPF for Windows, Microsoft's separate download, read unelevated 
 PowerShell: its three services (the eBPFCore and NetEbpfExt drivers, the eBPFSvc service), the version of its
 EbpfApi.dll and, when the core service is there, `netsh ebpf show programs` (an administrator's). Then whether a
 test-signed driver can load: Secure Boot (Confirm-SecureBootUEFI, else the registry), memory integrity
-(Win32_DeviceGuard) and test signing (bcdedit).
+(Win32_DeviceGuard) and test signing (this boot's start options, the registry's `SystemStartOptions`, which any user
+may read; bcdedit only where that cannot be read).
 
 On this PC it cannot load. Every public eBPF for Windows build is test-signed pre-release (its maintainers have no plans
 for production-signed builds), and Secure Boot with memory integrity keeps a test-signed driver from loading. It is not
 installed here either. So Main says: not installed; no programs, maps or links, since there are none (not that they
-could not be read); and the verdict, each fact with where it was read. Unelevated, bcdedit cannot say whether test
-signing is on, so the page says it is off but could not be confirmed without an administrator. The comparison serves
-all the same, and so does the watch, through Npcap and ETW.
+could not be read); and the verdict, each fact with where it was read. Test signing is off, read without an
+administrator from this boot's start options (before liminal-libs 1.60.0 it came from bcdedit, which refuses without
+one). The comparison serves all the same, and so does the watch, through Npcap and ETW.
 
 ## The tabs
 
@@ -184,11 +187,9 @@ Three hooks for the firewalls' Filter tabs and trapdoor, asked through the platf
   packets, ETW's records and the open flows; {} on Linux). Each read keeps the watch going. A watch that ended (its
   source could not open, it ended on its own, nobody read it) still answers for 60 s, with what it kept and why it
   ended; after that, or once stopped, its id names nothing and a read is refused: start another. On Windows a capture
-  or an ETW session lost after it opened (an adapter removed, a session stopped from outside) is not said yet: the
-  library's `NpcapEtwWatch` does not notice it, so such a watch answers reads with no events and no error, as a quiet
-  machine would, until it is stopped; the plugin's facts call its watches started, not reading. (The fix is the
-  library's: its pump stopping, with `error` set, when a source ends while the watch is wanted, as `BpftraceWatch`
-  does.)
+  or an ETW session lost after it opened (an adapter removed, a session stopped from outside) ends the watch, its
+  `error` in the source's own words ("the capture stopped: ...", "the ETW session ended: ..."), as bpftrace ending
+  does on Linux (liminal-libs 1.60.0's `NpcapEtwWatch`), so a watch running is a watch reading.
 - `watch_stop(watch_id)` ends it now and lets its id go: `{"id", "stopped": true, "error"}` (`error`: what its stop
   said, when it raised). A second stop, or an id that names no watch, answers the same and stops nothing.
 
@@ -256,8 +257,8 @@ capability this should reflect in the plugin".
 Inside a WSL distribution the platform runs in, the Linux runtime applies (liminal-libs 1.57.0 or newer) and reads that
 distribution's kernel as any other's: what WSL lacks shows in what is read. Main then ends with an Under WSL table of
 the plugin's own, from the library's `machines.linux.wsl`, `wsl_generation` and `systemd_runs` (reached through
-getattr; not the library's `wsl_table`, whose rows are the admin plugins' and the firewalls'). 1.57.0 is the plugin's
-floor for this: a library before it refused a WSL kernel, in its own words, and had no helpers. The table says:
+getattr; not the library's `wsl_table`, whose rows are the admin plugins' and the firewalls'). A library before 1.57.0
+refused a WSL kernel, in its own words, and had no helpers; the plugin needs 1.60.0 in any case. The table says:
 
 - **This Linux**: WSL 2 (or 1) and the distribution's name, and whether systemd runs (as read; "not read" where the
   library cannot say). A WSL 2 kernel whose release names Microsoft (`...-microsoft-standard-WSL2`) is Microsoft's:
@@ -355,8 +356,8 @@ Seven cards, in this order:
   and [memory integrity](https://learn.microsoft.com/en-us/windows/security/hardware-security/enable-virtualization-based-protection-of-code-integrity)
   pages. Its reads: `Get-Service` for eBPFCore, NetEbpfExt and eBPFSvc, EbpfApi.dll's version, `netsh ebpf show
   programs`, `maps` and `links`, a program's `level=verbose`, `Confirm-SecureBootUEFI`, the SecureBoot registry key,
-  `Win32_DeviceGuard`, `bcdedit /enum {current}`; loading in code (EbpfApi.dll) and `netsh ebpf add program` beside
-  them, unused.
+  `Win32_DeviceGuard`, the start options (`SystemStartOptions`), `bcdedit /enum {current}` where those cannot be read;
+  loading in code (EbpfApi.dll) and `netsh ebpf add program` beside them, unused.
 - **Npcap (packet capture)** (Nmap Software), the Windows firewall plugin's card fitted to the Windows watch's `net`
   kind: [Npcap](https://npcap.com/), [its users' guide](https://npcap.com/guide/npcap-users-guide.html),
   [where its install options are kept](https://npcap.com/guide/npcap-devguide.html) (AdminOnly among them),
@@ -377,7 +378,7 @@ Seven cards, in this order:
 
 `api_facts()` says what the last status and the watches learned, asking nothing: the runtime there and its version,
 the watch's own command and the kernel functions its kprobes need, whether Npcap and ETW can watch here, and the
-watches running (on Windows: started, since a lost capture is not said yet), out of the service's cap.
+watches running, out of the service's cap.
 
 Every address on the cards was read from its maker's pages on 2026-11-14, with the comparison's research (`VERIFIED`);
 the Npcap card keeps the day the Windows firewall plugin read its pages, 2026-11-15 (`VERIFIED_NPCAP`). The test
@@ -403,12 +404,12 @@ runtimes and the watches are stand-ins, and a test that reaches the real thing f
 `world.under_wsl` and `linux.wsl`, so the suite reads alike on Windows, inside WSL and on a Linux of its own.
 
 - `test_contract.py`: the plugin contract at plugin API 2.2, a platform machine plugin, `SECTION` "os" and `ICON`
-  "ebpf" (whether icons.js draws it is skipped before liminal-libs 1.60.0, and fails from it on if the mark is
-  missing).
+  "ebpf", which liminal-libs' icons.js draws.
 - `test_apis.py`: the cards sound (`problems` finds nothing); every point of the comparison with its source, and every
   source a real point; each card's calls the ones the library's or the plugin's code makes (read from its source
   text); and no card saying anything of one machine's own state.
-- `test_plugin.py`: the runtime by system; valid on both, never a bare problem, `present()` agreeing; every page plain
+- `test_plugin.py`: the runtime by system; valid on both, never a bare problem, `present()` agreeing; on a library
+  older than the floor not valid, saying which it needs, and nothing read or run; every page plain
   JSON; root's rights read from each command (a least-privilege sudoers rule among them) and the watch's from its own
   command; Main, Compare and Functions on Linux, inside WSL 2 and WSL 1, on macOS, with a library that refuses WSL,
   and on Windows; the Here column holding exactly what was read, each naming its read; the forms' fields are the

@@ -5,8 +5,6 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 import plugin_platform_ebpf as module
 from liminal_libs.apps.tabs import Tab
 from liminal_libs.sources.conformance import assert_module_conforms
@@ -35,21 +33,19 @@ def release(version: str) -> tuple[int, ...]:
 
 
 def test_its_icon_is_its_makers_mark_drawn_by_the_library():
-    """eBPF's bee, the maker's mark (the user's rule: a plugin's icon is its maker's mark). It comes with liminal-libs
-    1.60.0's icons.js; before that release the page draws its plug and this check waits, and from it on a mark that is
-    missing, or drawn under another name, fails it."""
+    """eBPF's bee, the maker's mark (the user's rule: a plugin's icon is its maker's mark), in liminal-libs' icons.js
+    from 1.60.0, the plugin's floor: a mark that is missing, or drawn under another name, fails it."""
     import liminal_libs
     from liminal_libs.ui import STATIC
 
+    assert release(module.LIBS_FLOOR) == MARKED  # the floor (pyproject's, LIBS_FLOOR) is the release with the mark
+    assert release(liminal_libs.__version__) >= MARKED
     assert {p.ICON for p in assert_module_conforms(module)} == {"ebpf"}
     drawn = set(re.findall(r"^\s*([a-z]+):\s*'", (STATIC / "icons.js").read_text(encoding="utf-8"), re.M))
-    if "ebpf" not in drawn and release(liminal_libs.__version__) < MARKED:
-        pytest.skip(f"liminal-libs {liminal_libs.__version__}'s icons.js has no ebpf mark yet (it comes with 1.60.0): "
-                    "the page draws the plug")
     assert "ebpf" in drawn, f"liminal-libs {liminal_libs.__version__} draws no ebpf mark: the page draws the plug"
 
 
-def test_the_icon_check_waits_only_for_releases_before_the_mark():
+def test_releases_are_told_apart_by_their_numbers():
     assert release("1.58.0") < MARKED <= release("1.60.0") <= release("1.61.2") and release("2.0.0") > MARKED
     assert release("1.60.0rc1") == (1, 60, 0) and release("1.59") == (1, 59)
 

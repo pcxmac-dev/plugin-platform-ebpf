@@ -295,12 +295,14 @@ EBPF_WINDOWS = Api(
            "signing to say whether anything can load on the machine it runs on (the facts beside say what it read)."),
     kind="system",
     base=("Get-Service, the EbpfApi.dll version, netsh ebpf show *, Confirm-SecureBootUEFI or the registry, "
-          "Win32_DeviceGuard and bcdedit (liminal_libs.machines.windows.PowerShell, windowless)"),
+          "Win32_DeviceGuard, and this boot's start options or bcdedit (liminal_libs.machines.windows.PowerShell, "
+          "windowless)"),
     version=("eBPF for Windows v1.7.0 (2026-10-16) is the newest release; a v1.7.1 tag and NuGet 1.7.1 (2026-11-10) "
              "without a release page; main is at 1.8.0"),
-    auth=("the service states, the EbpfApi.dll version, the Secure Boot registry fallback and memory integrity need no "
-          "administrator; netsh ebpf show * needs one (the eBPFCore device's access control), as do "
-          "Confirm-SecureBootUEFI and bcdedit; the plugin never elevates for them, and says what it could not read"),
+    auth=("the service states, the EbpfApi.dll version, the Secure Boot registry fallback, memory integrity and this "
+          "boot's start options need no administrator; netsh ebpf show * needs one (the eBPFCore device's access "
+          "control), as do Confirm-SecureBootUEFI and bcdedit (asked only where the start options cannot be read); the "
+          "plugin never elevates for them, and says what it could not read"),
     limits="",
     costs="",
     links=(
@@ -356,8 +358,12 @@ EBPF_WINDOWS = Api(
              used="the Main tab's verdict (the fallback)", docs=TESTSIGNING_DOC),
         Call("Get-CimInstance Win32_DeviceGuard", "memory integrity (SecurityServicesRunning contains 2)",
              "Can it load here", used="the Main tab's verdict", docs=HVCI_DOC),
-        Call("bcdedit /enum {current}", "test signing on or off", "Can it load here",
-             used="the Main tab's verdict (needs an administrator to read)", docs=TESTSIGNING_DOC),
+        Call(r"HKLM:\SYSTEM\CurrentControlSet\Control SystemStartOptions",
+             "test signing in effect this boot (TESTSIGNING among the start options), readable by any user",
+             "Can it load here", used="the Main tab's verdict", docs=TESTSIGNING_DOC),
+        Call("bcdedit /enum {current}", "test signing on or off, where the start options cannot be read",
+             "Can it load here", used="the Main tab's verdict (the fallback; needs an administrator to read)",
+             docs=TESTSIGNING_DOC),
         Call("bpf_object__load / bpf_program__attach (EbpfApi.dll)", "a program loaded and attached in code",
              "libbpf compatibility", docs=MSE + "BpfSyscallCompatibility.md"),
         Call("netsh ebpf add program filename=<f>", "a native .sys loaded and attached", "Loading and signing",

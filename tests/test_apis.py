@@ -146,9 +146,10 @@ def test_the_windows_card_names_the_reads_the_library_makes():
         "Confirm-SecureBootUEFI",
         r"HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State UEFISecureBootEnabled",
         "Get-CimInstance Win32_DeviceGuard",
+        r"HKLM:\SYSTEM\CurrentControlSet\Control SystemStartOptions",
         "bcdedit /enum {current}"}
     for token in ("Get-Service", "EbpfApi.dll", "netsh ebpf show programs", "level=verbose", "Confirm-SecureBootUEFI",
-                  "UEFISecureBootEnabled", "Win32_DeviceGuard", "bcdedit"):
+                  "UEFISecureBootEnabled", "Win32_DeviceGuard", "SystemStartOptions", "bcdedit"):
         assert token in WIN_SRC, token
 
 

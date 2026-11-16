@@ -23,7 +23,7 @@ from datetime import datetime
 
 from liminal_libs.machines.plugin import CommandError
 
-from . import MACHINE
+from . import MACHINE, libs_too_old
 
 POLL_S = 1.0  # how often a watch is read
 
@@ -102,6 +102,10 @@ def watch(m, kinds, spec: dict, seconds: float) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(list(sys.argv[1:] if argv is None else argv) or ["status"])
+    too_old = libs_too_old()
+    if too_old:  # nothing is read or run on an older library
+        print(too_old, file=sys.stderr)
+        return 1
     m = MACHINE
     try:
         if args.what in ("status", "compare", "functions"):

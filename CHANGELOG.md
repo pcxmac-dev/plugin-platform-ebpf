@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.1.1 (2026-11-16)
+
+On liminal-libs 1.60.0, which fixes what building 0.1.0 found in the library:
+
+- **Test signing is said as read, elevated or not.** The library reads it from this boot's start options (the
+  registry's `SystemStartOptions`), which any user may read, and from bcdedit only where that cannot be read, and names
+  which (`test_signing_source`). Main's table row, Compare's Here column and the API facts name that place. "off
+  (could not be confirmed without an administrator)" is gone, and a read naming no place is said as not read.
+  `signing_words` and `verdict_words` no longer take whether the platform is elevated.
+- **A lost Windows source ends its watch.** A capture or an ETW session lost after it opened stops the watch, its
+  `error` in the source's own words, so a watch running is a watch reading: the facts say "Net watches running" and
+  "Watches running", as on Linux (`LOST_SAID` in place of `LOST_UNSAID`).
+- The net watch's kprobes are the kernel's own (`udpv6_sendmsg`), so the /proc/kallsyms check finds them.
+- Its bee is drawn (icons.js), and the contract's icon check runs.
+- The eBPF for Windows card names the start options read, with bcdedit as the fallback.
+- **It checks its own floor.** The platform loads a plugin from its folder whatever its pyproject says, so on a
+  liminal-libs older than 1.60.0 the plugin would word that library's facts as 1.60.0's. There its status says which
+  library it needs and is not valid, `present()` is False, the attach reads and reclaims nothing, the API facts say
+  only that, and every hook and the command line refuse in the same words (`LIBS_FLOOR`, `libs_too_old`).
+- `__version__` is 0.1.1, as pyproject says.
+
+Needs liminal-libs>=1.60.0.
+
 ## 0.1.0 (2026-11-16)
 
 The first release: the eBPF API plugin (the user, 2026-11-14: "we need an ebpf api plugin, that shows the difference

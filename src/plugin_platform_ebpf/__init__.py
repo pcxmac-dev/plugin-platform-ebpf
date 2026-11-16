@@ -20,7 +20,9 @@ what it read, asks the risky changes twice, and holds the watches.
 - Valid wherever it serves anything, and it serves everywhere: the comparison needs nothing of the machine, and the
   watch needs only its backend. Whether the runtime is there, and why it cannot load, are facts on the page, never a
   reason to be invalid: the platform detaches a plugin that is not valid, and its tabs and its watch service would go
-  with it. present(), which the platform's tray asks, agrees: True wherever the plugin serves.
+  with it. present(), which the platform's tray asks, agrees: True wherever the plugin serves. The one place it does
+  not: a liminal-libs older than its floor (LIBS_FLOOR, libs_too_old), which the platform's folder loader does not
+  check; there the status says which library it needs, and no hook reads or runs anything.
 - Compare (a tab): the library's comparison (ebpf.CAPABILITIES: 65 points in 12 areas, read 2026-11-14), Linux beside
   Windows, each point's source under its name (apis.SOURCES), this machine's column marked by what the machine is
   (neither on macOS, or under WSL 1), and a Here column only where this machine's status read something, each naming
@@ -41,7 +43,7 @@ what it read, asks the risky changes twice, and holds the watches.
   the page. A watch of its own for each caller, at most 8 at once, each stopping itself 20 s after its last read; the
   detach stops every one and starts none until the plugin is attached again. On Windows, at the plugin's first attach
   on the platform, the ETW sessions a killed platform left are stopped (etw.reclaim_stale_sessions); a capture or an
-  ETW session lost after it opened is not said yet (the library's Windows watch does not notice it).
+  ETW session lost after it opened ends its watch, said in the watch's error (liminal-libs 1.60.0).
 - What it attaches to (plugin API 2.2; the user, 2026-11-11: "each plugin should reflect the the API its attached to,
   and present links that provide documentation"): apis.py's cards; `api_facts` says what the last read and the watch
   service learned, asking nothing.
@@ -62,6 +64,7 @@ import time
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 
+import liminal_libs
 from liminal_libs import capture
 from liminal_libs.apps.tabs import Tab
 from liminal_libs.ebpf import capabilities
@@ -77,7 +80,7 @@ from liminal_libs.machines.windows import is_elevated
 from .apis import APIS, BPFTOOL, BPFTRACE, EBPF_WINDOWS, ETW, KERNEL, NPCAP, SOURCES, VERIFIED
 from .watch_service import WatchService
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 SYSTEMS = ("linux", "windows")
 READ_S = 60.0  # the runtime read again once its read is this old (the platform asks the status every 30 s)
 FIRST_WAIT_S = 8.0  # how long a status, or a tab, waits for the first read
@@ -126,9 +129,13 @@ MOUNTS_ITSELF = ("bpftool mounts it there first, as root (it stays mounted until
                  "restarts)")
 NETSH_DUMP = ("the plugin reads eBPF for Windows through netsh, which lists maps but cannot read one's entries (its "
               "bpftool port can)")
-LOST_UNSAID = ("a capture or an ETW session lost after it opened (an adapter removed, a session stopped from outside) "
-               "is not said yet: such a watch answers reads with nothing new, as a quiet machine would, until it is "
-               "stopped (the library's Windows watch does not say it yet)")
+LIBS_FLOOR = "1.60.0"  # pyproject's floor, checked by the plugin itself (libs_too_old)
+LOST_SAID = ("a capture or an ETW session lost after it opened (an adapter removed, a session stopped from outside) "
+             "ends the watch, its error in the source's own words, and its caller can start another")
+# Where test signing was read (liminal-libs 1.60.0's `test_signing_source`), as a page names that read
+SIGNING_FROM = {"boot options": r"the registry (SystemStartOptions: this boot's start options)",
+                "bcdedit": "bcdedit /enum {current}"}
+SIGNING_UNREAD = "this boot's start options, then bcdedit /enum {current}: neither answered"
 
 
 # -- words and cells ----------------------------------------------------------------------------------------------
@@ -495,32 +502,63 @@ def hvci_words(facts: dict) -> tuple[str, str]:
     return ("off", "") if hvci is False else ("not read", "")
 
 
-def signing_words(facts: dict, elevated: bool) -> str:
-    """Test signing as bcdedit gave it. Not as an administrator, bcdedit prints its refusal where its answer goes,
-    and the library reads that as test signing off: off is then said unconfirmed."""
-    ts = facts.get("test_signing")
-    if ts is True:
-        return "on"
-    if ts is None or not facts.get("test_signing_readable"):
-        return "not read" if elevated else "not read: bcdedit needs an administrator"
-    return "off" if elevated else "off (could not be confirmed without an administrator)"
+def release_of(version) -> tuple[int, ...]:
+    """A release's number as a tuple ("1.60.0" -> (1, 60, 0)), what follows its digits (a suffix) left out."""
+    parts: list[int] = []
+    for piece in str(version or "").split("."):
+        digits = re.match(r"\d+", piece)
+        if not digits:
+            break
+        parts.append(int(digits.group()))
+        if digits.group() != piece:
+            break
+    return tuple(parts)
 
 
-def verdict_words(facts: dict, elevated: bool) -> tuple[str, str]:
+def libs_too_old(version=None) -> str:
+    """Why the liminal-libs here is older than the plugin's floor (LIBS_FLOOR, pyproject's), in words, or "" when it
+    is new enough. The platform loads a plugin from its folder whatever its floor says, so the plugin checks its own:
+    an older library's facts would be worded as 1.60.0's (where test signing was read, a lost Windows source said)."""
+    if version is None:
+        version = getattr(liminal_libs, "__version__", "")
+    version = str(version or "")
+    if version and release_of(version) >= release_of(LIBS_FLOOR):
+        return ""
+    return (f"this plugin needs liminal-libs {LIBS_FLOOR} or newer, and this is "
+            + (version if version else "a liminal-libs that does not say its version"))
+
+
+def signing_from(facts: dict) -> str:
+    """Where test signing was read, as a page names that read, or "" when it was not read. liminal-libs 1.60.0 reads
+    this boot's start options, which any user may read, else bcdedit when it answered, and names which; a read naming
+    neither is no read."""
+    if facts.get("test_signing") is None or not facts.get("test_signing_readable"):
+        return ""
+    return SIGNING_FROM.get(str(facts.get("test_signing_source") or ""), "")
+
+
+def signing_words(facts: dict) -> str:
+    """Test signing as it was read, elevated or not; "not read" with why where it was not."""
+    if not signing_from(facts):
+        return "not read: neither this boot's start options nor bcdedit answered"
+    return "on" if facts.get("test_signing") is True else "off"
+
+
+def verdict_words(facts: dict) -> tuple[str, str]:
     """Whether a test-signed driver can load here, from Secure Boot, memory integrity and test signing as read."""
-    sb, hvci, ts = facts.get("secure_boot"), facts.get("hvci"), facts.get("test_signing")
-    if sb is True and ts is not True:
+    sb, hvci = facts.get("secure_boot"), facts.get("hvci")
+    signing = facts.get("test_signing") if signing_from(facts) else None
+    if sb is True and signing is not True:
         return ("no: the test-signed runtime cannot load here", "Secure Boot is on, and Windows loads a test-signed "
                 "driver only in test-signing mode, which needs Secure Boot off")
-    if ts is True:
+    if signing is True:
         return (("yes, as native .sys programs only", "test signing is on; memory integrity is on, so no JIT")
                 if hvci is True else ("yes", "test signing is on, so a test-signed driver can load"))
     if sb is False:
-        if facts.get("test_signing_readable") and elevated:
+        if signing is False:
             return ("not as it is: test signing is off", "with Secure Boot off it can be turned on: bcdedit -set "
                     "TESTSIGNING ON, as an administrator, then a restart")
-        return "not known", ("Secure Boot is off; whether test signing is on could not be confirmed without an "
-                             "administrator")
+        return "not known", "Secure Boot is off; test signing could not be read"
     return "not known", "Secure Boot could not be read"
 
 
@@ -815,7 +853,7 @@ class EbpfPlugin(MachinePlugin):
     api = "2.2"
     apis = APIS  # what it attaches to: bpftool, bpftrace, the kernel, libbpf, eBPF for Windows, Npcap, ETW (apis.py)
     order = 712  # after the two firewalls (710, 711)
-    ICON = "ebpf"  # eBPF's bee, its maker's mark (liminal-libs 1.60.0's icons.js; the page draws the plug until then)
+    ICON = "ebpf"  # eBPF's bee, its maker's mark (liminal-libs 1.60.0's icons.js)
     SECTION = "os"  # under the platform's OS plugins (liminal-platform 0.26.0; the user, 2026-11-15: "then OS plugins")
     HOOKS = (*MachinePlugin.HOOKS, "refresh", "compare", "functions", "show_program", "dump", "load_program",
              "attach_program", "detach_program", "unload_program", "watch_start", "watch_read", "watch_stop")
@@ -986,8 +1024,17 @@ class EbpfPlugin(MachinePlugin):
         with self._rt.lock:
             return self._rt.snap
 
+    @staticmethod
+    def _needs_libs() -> None:
+        """ValueError, in words, on a liminal-libs older than the floor (libs_too_old): no hook reads or runs anything
+        there, as the status says it is not valid."""
+        too_old = libs_too_old()
+        if too_old:
+            raise ValueError(too_old)
+
     def refresh(self) -> dict:
         """The runtime read again now (the page's Read again)."""
+        self._needs_libs()
         snap = self.read()
         if snap.error:
             return {"said": f"the runtime could not be read: {snap.error}", "ok": False}
@@ -996,9 +1043,10 @@ class EbpfPlugin(MachinePlugin):
     # -- the platform's asks -------------------------------------------------------------------------------------
     def present(self) -> bool:
         """Whether the plugin is there to serve: everywhere, as its status' `valid` says (the comparison needs nothing
-        of the machine), so the platform's tray, which asks this, shows its icon whenever the list says it is active.
-        Whether this machine's eBPF runtime is there is the status' own `present`, said on its page. Asks nothing."""
-        return True
+        of the machine), so the platform's tray, which asks this, shows its icon whenever the list says it is active;
+        on a liminal-libs older than the floor, nowhere (libs_too_old). Whether this machine's eBPF runtime is there is
+        the status' own `present`, said on its page. Asks nothing."""
+        return not libs_too_old()
 
     def attach(self, app, login=None) -> dict:
         """Attached by `app`: a watch may be started again (a detach refuses them); on Windows, at the plugin's first
@@ -1006,6 +1054,8 @@ class EbpfPlugin(MachinePlugin):
         but for a one-shot command's attach (the platform's rule: it starts no background work of its own), the
         runtime is read on a thread, so the page's first look waits on nothing. No watch is started here."""
         interface = super().attach(app, login)
+        if libs_too_old():  # an older library: nothing read and nothing reclaimed (the status says why)
+            return interface
         with self._rt.lock:
             self._rt.detached = False
             reclaim = (self.system == "windows" and not self._rt.reclaimed and getattr(app, "NAME", "") == "platform"
@@ -1034,7 +1084,12 @@ class EbpfPlugin(MachinePlugin):
 
     def status(self) -> dict:
         """Main: this machine's runtime as the last read found it, valid wherever the plugin serves (everywhere), its
-        facts, its tables, the forms its rows open and Read again."""
+        facts, its tables, the forms its rows open and Read again. On a liminal-libs older than the plugin's floor it
+        serves nothing it could say truly: not valid, and why."""
+        too_old = libs_too_old()
+        if too_old:
+            return {"present": False, "valid": False, "why": too_old, "summary": too_old, "tables": [], "forms": [],
+                    "actions": []}
         snap = self.snapshot(wait=FIRST_WAIT_S)
         if snap is None:
             return {"valid": True, "summary": "reading this machine's eBPF runtime…", "tables": [], "forms": forms(),
@@ -1048,7 +1103,11 @@ class EbpfPlugin(MachinePlugin):
     def api_facts(self) -> dict:
         """What the last read and the watch service learned of what the plugin attaches to, asking nothing (a read
         under way is not waited for): on Linux bpftool, bpftrace and the kernel as read, on Windows eBPF for Windows,
-        Npcap and ETW; the watches running now. Nothing before the first read but the watches."""
+        Npcap and ETW; the watches running now. Nothing before the first read but the watches; on a liminal-libs older
+        than the floor, only that."""
+        too_old = libs_too_old()
+        if too_old:
+            return {(EBPF_WINDOWS if self.system == "windows" else BPFTOOL).name: {"Not read": too_old}}
         with self._rt.lock:
             snap = self._rt.snap
         out: dict[str, dict[str, str]] = {}
@@ -1286,8 +1345,8 @@ class EbpfPlugin(MachinePlugin):
             ("ETW cannot start a session here", not b.get("etw"))) if lacking]
         return {"present": snap.installed, "valid": True, "summary": self._windows_summary(snap), "runtime": runtime,
                 "secureBoot": secure_boot_words(f, snap.elevated)[0], "memoryIntegrity": hvci_words(f)[0],
-                "testSigning": signing_words(f, snap.elevated),
-                "canItLoad": " — ".join(x for x in verdict_words(f, snap.elevated) if x),
+                "testSigning": signing_words(f),
+                "canItLoad": " — ".join(x for x in verdict_words(f) if x),
                 "watch": "Npcap and ETW, not eBPF" + (f": {'; '.join(missing)}" if missing else ""),
                 "administrator": "yes" if snap.elevated else "no", "readAt": self._read_at(snap),
                 "tables": [self._windows_runtime_table(snap), self._can_it_load_table(snap),
@@ -1321,8 +1380,8 @@ class EbpfPlugin(MachinePlugin):
         rows = [["Secure Boot", sb, sb_from],
                 ["Memory integrity", cell(hv, hv_means), "Win32_DeviceGuard (SecurityServicesRunning), read "
                  + ("as an administrator" if elevated else "without an administrator")],
-                ["Test signing", signing_words(f, elevated), "bcdedit /enum {current}"],
-                ["Can it load", cell(*verdict_words(f, elevated)), "the three above"]]
+                ["Test signing", signing_words(f), signing_from(f) or SIGNING_UNREAD],
+                ["Can it load", cell(*verdict_words(f)), "the three above"]]
         unread = all(f.get(k) is None for k in ("secure_boot", "hvci", "test_signing")) and f.get("words")
         note = str(f["words"]) if unread else TEST_SIGNED[0].upper() + TEST_SIGNED[1:] + "."
         return {"title": "Can a test-signed driver load here", "note": note,
@@ -1345,7 +1404,7 @@ class EbpfPlugin(MachinePlugin):
                 ["ETW", events, "this process's access token"],
                 ["The watch", cell("Npcap and ETW, not eBPF", "net from Npcap, each flow's program from ETW; process, "
                                    "file and registry from ETW: what the firewalls' Filter tabs and trapdoor ask; "
-                                   + LOST_UNSAID), "the two above"]]
+                                   + LOST_SAID), "the two above"]]
         return {"title": "Watching here", "note": "The library's Windows watch, behind the same interface an eBPF one "
                 "would fill once signed builds exist; read without opening Npcap or starting a session",
                 "columns": [{"title": "What"}, {"title": "Here"}, {"title": "Read from"}], "rows": rows}
@@ -1356,6 +1415,7 @@ class EbpfPlugin(MachinePlugin):
         source under its name), Linux beside Windows, this machine's column marked (none where neither is: macOS, WSL
         1), and a Here column in the areas where this machine's status read something, each cell saying where it was
         read. Nothing static is claimed there."""
+        self._needs_libs()
         snap = self.snapshot(wait=FIRST_WAIT_S)
         here = self._here(snap)
         this, marked = self._this_machine(snap), self._marked(snap)
@@ -1491,16 +1551,15 @@ class EbpfPlugin(MachinePlugin):
             here[("Install and status", "Current version")] = cell(
                 f"v{s['version']}" if s.get("version") else "none: not installed" if not snap.installed else
                 "not read", r"read from %ProgramFiles%\ebpf-for-windows\EbpfApi.dll")
-        sb, hv, ts = f.get("secure_boot"), f.get("hvci"), f.get("test_signing")
-        signing = ts is not None and bool(f.get("test_signing_readable"))
+        sb, hv = f.get("secure_boot"), f.get("hvci")
+        signing = signing_from(f)
         sb_from = {"firmware": "Confirm-SecureBootUEFI",
                    "registry": r"the registry (SecureBoot\State)"}.get(f.get("secure_boot_source"), "")
         reads = [x for x, read in ((f"Secure Boot from {sb_from}", sb is not None),
                                    ("memory integrity from Win32_DeviceGuard", hv is not None),
-                                   ("test signing from bcdedit" + ("" if elevated else ", not confirmed without an "
-                                                                   "administrator"), signing)) if read]
+                                   (f"test signing from {signing}", bool(signing))) if read]
         if reads:  # the verdict from what of the three was read, and only those named
-            verdict, means = verdict_words(f, elevated)
+            verdict, means = verdict_words(f)
             here[("Install and status", "Production or preview")] = cell(
                 f"test-signed: {verdict}", "read here: " + "; ".join(reads) + (f". {means}" if means else ""))
         read = "read from Win32_DeviceGuard, " + ("as an administrator" if elevated else "without an administrator")
@@ -1510,9 +1569,9 @@ class EbpfPlugin(MachinePlugin):
             here[("Execution", "Interpreter / JIT / native")] = cell("no JIT here: memory integrity is on", read)
         if sb is not None or signing:
             sources = [x for x, used in ((secure_boot_words(f, elevated)[1], sb is not None),
-                                         ("bcdedit /enum {current}", signing)) if used]
+                                         (signing, bool(signing))) if used]
             here[("Execution", "Signing and test signing")] = cell(
-                f"Secure Boot {secure_boot_words(f, elevated)[0]}; test signing {signing_words(f, elevated)}",
+                f"Secure Boot {secure_boot_words(f, elevated)[0]}; test signing {signing_words(f)}",
                 "read from " + "; ".join(sources))
         here[("Privileges", "Load and attach")] = cell(
             "the platform runs as an administrator" if elevated else "the platform runs without an administrator's "
@@ -1532,6 +1591,7 @@ class EbpfPlugin(MachinePlugin):
         change; on Linux what WSL 1, a missing bpftool, root refused or no BPF filesystem keeps from running, and
         everything where the runtime does not apply (the user, 2026-11-15: "if wsl prevents or misses some capability
         this should reflect in the plugin")."""
+        self._needs_libs()
         snap = self.snapshot(wait=FIRST_WAIT_S)
         refused = self._no_change(snap) if self.system == "windows" else ""
         gates = self._gates(snap, refused)
@@ -1726,6 +1786,7 @@ class EbpfPlugin(MachinePlugin):
     def show_program(self, prog_id) -> dict:
         """One loaded program by its id, every field of it: bpftool -j prog show id, as root (on Windows netsh ebpf
         show programs id= level=verbose, an administrator's)."""
+        self._needs_libs()
         n = whole(prog_id, "a program's id")
         self._refuse_without_kernel()
         if self.system == "windows":
@@ -1752,6 +1813,7 @@ class EbpfPlugin(MachinePlugin):
         """A map's first `limit` entries (DUMP_LIMIT at most: a map can hold millions): bpftool -j map dump id, as
         root, at most 8 MB of its output read. On Windows netsh lists maps but cannot read one, so a dump there is
         empty and says why."""
+        self._needs_libs()
         n = whole(map_id, "a map's id")
         most = DUMP_LIMIT if blank(limit) else whole(limit, "the entries to read", 1, DUMP_LIMIT)
         self._refuse_without_kernel()
@@ -1773,6 +1835,7 @@ class EbpfPlugin(MachinePlugin):
         through sudo -n. `pin` is a path under /sys/fs/bpf (by default /sys/fs/bpf/liminal_<the file's name>);
         `type` bpftool's program type word, when the file's sections do not say. Always asked twice (accept_load):
         the design's "Loading eBPF programs is a confirmed action", and a loaded program runs inside the kernel."""
+        self._needs_libs()
         self._refuse_on_windows()
         file = program_path(path)
         where = default_pin(file) if blank(pin) else pin_of(pin)
@@ -1791,6 +1854,7 @@ class EbpfPlugin(MachinePlugin):
         dissector's (bpftool prog attach, the sockmap's `map_id`), else a cgroup hook on a cgroup v2 folder (bpftool
         cgroup attach, `flags` multi or override). Asked twice (accept_attach) for XDP, for a cgroup hook and for
         an overwrite: each changes what every packet or every process meets."""
+        self._needs_libs()
         self._refuse_on_windows()
         k = word(kind, "the attach type")
         prog_pin, prog = which_program(pin, prog_id)
@@ -1834,6 +1898,7 @@ class EbpfPlugin(MachinePlugin):
         """An attachment detached as root through sudo -n, the way it was made: a link by its id (bpftool link
         detach), else the attach type with its target (XDP and tcx: the device; a cgroup hook: the folder and the
         program; a sockmap's: the program and the sockmap). Confirmed once."""
+        self._needs_libs()
         self._refuse_on_windows()
         link = optional_whole(link_id, "a link's id")
         if link is not None:
@@ -1866,6 +1931,7 @@ class EbpfPlugin(MachinePlugin):
         """A program unloaded by removing its pin (rm -f, as root through sudo -n): the kernel frees it once nothing
         else holds it. A pin that is not Liminal's own (/sys/fs/bpf/liminal_*) is asked twice (accept_unload), as the
         library says a plugin does: what pinned it may rely on it."""
+        self._needs_libs()
         self._refuse_on_windows()
         where = pin_of(pin)
         if not liminal_pin(where) and accept_unload is not True:
@@ -1902,6 +1968,7 @@ class EbpfPlugin(MachinePlugin):
         run, and once the plugin was detached (until it is attached again). On Linux `spec["pid"]` is matched against
         bpftrace's pid, the kernel's numbering: inside a WSL distribution (a pid namespace of its own) that is not the
         pid ps shows there, so give one an event showed (a process watch's exec)."""
+        self._needs_libs()
         service = self._rt.service
         with self._rt.lock:
             if self._rt.detached:
@@ -1956,8 +2023,8 @@ class EbpfPlugin(MachinePlugin):
             "Services": "; ".join(f"{x.get('name')} {(x.get('status') or 'present') if x.get('present') else 'absent'}"
                                   for x in services) or "not read",
             "Secure Boot": secure_boot_words(f, snap.elevated)[0], "Memory integrity": hvci_words(f)[0],
-            "Test signing": signing_words(f, snap.elevated),
-            "Can it load here": " — ".join(x for x in verdict_words(f, snap.elevated) if x),
+            "Test signing": signing_words(f) + (f", read from {signing_from(f)}" if signing_from(f) else ""),
+            "Can it load here": " — ".join(x for x in verdict_words(f) if x),
             "Last read": self._read_at(snap)}}
         if b:
             out[NPCAP.name] = {"wpcap.dll": "installed" if b.get("npcap") else "not installed",
@@ -1968,8 +2035,8 @@ class EbpfPlugin(MachinePlugin):
 
     def _watch_facts(self) -> dict:
         """The watches running now (WatchService.live: asking keeps none going), under what each reads with, out of
-        the service's own cap. On Windows, started and not stopped: whether its capture or ETW session is still reading
-        is not said yet (LOST_UNSAID); on Linux a watch whose bpftrace ended stops, so running is running."""
+        the service's own cap. A watch whose source ended stops, so running is reading: on Linux when bpftrace ends,
+        on Windows when its capture or ETW session is lost (LOST_SAID)."""
         service = self._rt.service
         live = service.live()
 
@@ -1979,8 +2046,8 @@ class EbpfPlugin(MachinePlugin):
             return f"{len(watches)} of {service.cap}: " + "; ".join(
                 f"{'+'.join(w['kinds'])} since {when(w['started'])}" for w in watches)
         if self.system == "windows":
-            return {NPCAP.name: {"Net watches started": said([w for w in live if "net" in w["kinds"]], "none")},
-                    ETW.name: {"Watches started": said(live, "none")}}
+            return {NPCAP.name: {"Net watches running": said([w for w in live if "net" in w["kinds"]], "none")},
+                    ETW.name: {"Watches running": said(live, "none")}}
         return {BPFTRACE.name: {"Watches running": said(live, "none running")}}
 
 

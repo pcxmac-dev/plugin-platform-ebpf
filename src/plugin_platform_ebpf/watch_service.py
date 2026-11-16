@@ -19,8 +19,7 @@ service's start, read and stop; no tab, form, action or option of the plugin's p
   "at" the same moment as wall time (epoch seconds). A watch that ended (its source could not open, it ended on its
   own, or nobody read it) still says so, and why, on a read for ENDED_S after; then its id names nothing. A watch's end
   is what the library's Watch says (`stopped`, `error`): on Linux bpftrace ending says it; on Windows a capture or an
-  ETW session lost after it opened is not said yet (the library's NpcapEtwWatch does not notice it), so such a watch
-  answers on with nothing new until it is stopped.
+  ETW session lost after it opened says it (liminal-libs 1.60.0's NpcapEtwWatch stops, in the source's own words).
 
 One lock guards what the service holds. A watch's own threads (its self-stop, its reader, its pump) are the watch's,
 and a watch is made, started, read and stopped outside the lock, so a source slow to open or to close holds up no

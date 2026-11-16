@@ -2,7 +2,8 @@
 Npcap, starts ETW, opens a port or reaches the network: conftest refuses each, and fails a test that reaches one): the
 runtime picked by the system the platform runs on; the status valid on every machine and never a bare problem, read on
 a thread and kept, its facts and tables on Linux, inside WSL and on Windows (this PC's: eBPF for Windows not installed,
-Secure Boot and memory integrity on, test signing unconfirmed without an administrator); root's rights read from each
+Secure Boot and memory integrity on, test signing off, read from this boot's start options); a liminal-libs older than
+the plugin's floor said, and the plugin then not valid; root's rights read from each
 command the plugin runs, not from `sudo -n true` alone, and the watch's from its own command; the Compare tab's 65
 points by area with their sources, and a Here column only from what was read, each naming the read it came from; the
 Functions tab, its forms asking each hook with its arguments in order, and what the last read says cannot run disabled
@@ -280,7 +281,7 @@ def test_a_kernel_lacking_a_function_the_watch_scripts_probe_is_said(linux, monk
     one program: a watch with that kind ends at its start. The functions are read from the library's scripts and
     looked for in /proc/kallsyms, as the platform's user."""
     assert "udp_sendmsg" in plugin.script_kprobes().get("net", ())  # read from the library's net script itself
-    monkeypatch.setattr(plugin, "script_kprobes", lambda: {"net": ("udp_sendmsg", "udp_v6_sendmsg")})  # net.bt's now
+    monkeypatch.setattr(plugin, "script_kprobes", lambda: {"net": ("udp_sendmsg", "udp_v6_sendmsg")})  # before 1.60.0
     p, fake, _ = linux()  # this kernel names the IPv6 one udpv6_sendmsg, as every kernel read here does
     s = plain(p.status())
     assert s["watch"].endswith("; a watch with net ends at its start here: the library's net script probes "
@@ -575,8 +576,7 @@ def test_on_windows_this_pcs_status_is_valid_and_says_why_nothing_can_load(windo
     assert s["summary"] == ("eBPF for Windows is not installed, and it could not load here: Secure Boot is on; the "
                             "watch uses Npcap and ETW")
     assert (s["runtime"], s["secureBoot"], s["memoryIntegrity"], s["testSigning"], s["administrator"], s["watch"]) == (
-        "eBPF for Windows: not installed", "on", "on", "off (could not be confirmed without an administrator)", "no",
-        "Npcap and ETW, not eBPF")
+        "eBPF for Windows: not installed", "on", "on", "off", "no", "Npcap and ETW, not eBPF")
     assert s["canItLoad"] == ("no: the test-signed runtime cannot load here — Secure Boot is on, and Windows loads a "
                               "test-signed driver only in test-signing mode, which needs Secure Boot off")
     runtime, load, watching, programs, maps, links = s["tables"]
@@ -591,14 +591,15 @@ def test_on_windows_this_pcs_status_is_valid_and_says_why_nothing_can_load(windo
     assert rows["Memory integrity"][1:] == [
         {"text": "on", "sub": "so the JIT cannot run, and only signed native drivers load"},
         "Win32_DeviceGuard (SecurityServicesRunning), read without an administrator"]
-    assert rows["Test signing"][1] == "off (could not be confirmed without an administrator)"
+    # read without an administrator from this boot's start options (liminal-libs 1.60.0), so said as read
+    assert rows["Test signing"][1:] == ["off", r"the registry (SystemStartOptions: this boot's start options)"]
     assert text(rows["Can it load"][1]) == "no: the test-signed runtime cannot load here"
     assert load["note"].startswith("Every eBPF for Windows build is test-signed pre-release")
     rows = by_first(watching)
     assert text(rows["Npcap"][1]) == "installed" and rows["ETW"][1]["sub"].startswith("in Performance Log Users")
-    # a capture or an ETW session lost after it opened is not said by the library's Windows watch yet: said here
-    assert rows["The watch"][1]["sub"].endswith(plugin.LOST_UNSAID)
-    assert "is not said yet" in plugin.LOST_UNSAID and "until it is stopped" in plugin.LOST_UNSAID
+    # a capture or an ETW session lost after it opened ends the watch, said (liminal-libs 1.60.0's Windows watch)
+    assert rows["The watch"][1]["sub"].endswith(plugin.LOST_SAID)
+    assert "ends the watch" in plugin.LOST_SAID and "not said" not in plugin.LOST_SAID
     assert [t["empty"] for t in (programs, maps, links)] == ["None: eBPF for Windows is not installed."] * 3
     assert fake.ran("netsh ebpf") == 0  # nothing to list: nothing is installed
     assert fake.ran("Get-Service -Name $n") == 1 and fake.ran("Confirm-SecureBootUEFI") == 1
@@ -619,7 +620,8 @@ def test_on_windows_what_could_not_be_read_is_said(windows):
     assert s["valid"] is True and s["summary"] == "eBPF for Windows could not be read"
     assert s["runtime"] == "not read: the eBPF services could not be read: Get-Service failed"
     assert (s["secureBoot"], s["memoryIntegrity"], s["testSigning"]) == (
-        "not read", "not read", "not read: bcdedit needs an administrator")
+        "not read", "not read", "not read: neither this boot's start options nor bcdedit answered")
+    assert by_first(table(s, "Can a test-signed driver load here"))["Test signing"][2] == plugin.SIGNING_UNREAD
     assert s["canItLoad"] == "not known — Secure Boot could not be read"
     load = table(s, "Can a test-signed driver load here")
     assert load["note"].startswith("this machine's Secure Boot and memory-integrity state could not be read (Access is "
@@ -673,18 +675,69 @@ def test_on_windows_with_ebpf_for_windows_installed_its_listing_is_read(windows)
                                      "here: Secure Boot is on; the watch uses Npcap and ETW")
 
 
+def test_a_liminal_libs_older_than_the_floor_is_said_and_the_plugin_is_not_valid(linux, windows, monkeypatch):
+    # the platform loads a plugin from its folder whatever its floor says: on an older library the plugin would word
+    # that library's facts as 1.60.0's, so it says which library it needs and serves nothing
+    import pathlib
+
+    import liminal_libs
+    pyproject = (pathlib.Path(plugin.__file__).resolve().parents[2] / "pyproject.toml").read_text(encoding="utf-8")
+    assert f'dependencies = ["liminal-libs>={plugin.LIBS_FLOOR}"]' in pyproject
+    for make in (linux, windows):
+        p = make()[0]
+        monkeypatch.setattr(liminal_libs, "__version__", "1.59.0")
+        s = plain(p.status())
+        assert (s["valid"], s["present"]) == (False, False)
+        assert s["why"] == s["summary"] == "this plugin needs liminal-libs 1.60.0 or newer, and this is 1.59.0"
+        assert (s["tables"], s["forms"], s["actions"]) == ([], [], [])
+        monkeypatch.setattr(liminal_libs, "__version__", plugin.LIBS_FLOOR)
+        assert p.status()["valid"] is True
+    # nothing else reads or runs on it either: the tray, the attach, the API facts, every hook, the command line
+    for make, card in ((linux, "bpftool"), (windows, "eBPF for Windows")):
+        p, fake, _ = make()
+        monkeypatch.setattr(liminal_libs, "__version__", "1.59.0")
+        said = "this plugin needs liminal-libs 1.60.0 or newer, and this is 1.59.0"
+        assert p.present() is False
+        p.attach(App())  # a served platform's attach: on an older library nothing read, nothing reclaimed
+        assert p.snapshot() is None
+        assert p.api_facts() == {card: {"Not read": said}}
+        for hook, args in (("refresh", ()), ("compare", ()), ("functions", ()), ("show_program", (1,)), ("dump", (1,)),
+                           ("load_program", ("/tmp/x.o",)), ("attach_program", ("xdp",)), ("detach_program", (1,)),
+                           ("unload_program", ("/sys/fs/bpf/liminal_x",)), ("watch_start", (["process"],))):
+            with pytest.raises(ValueError, match=f"^{re.escape(said)}$"):
+                getattr(p, hook)(*args)
+        p.detach()
+        monkeypatch.setattr(liminal_libs, "__version__", plugin.LIBS_FLOOR)
+    monkeypatch.setattr(liminal_libs, "__version__", "1.59.0")
+    assert cli.main(["status"]) == 1 and cli.main(["watch", "net"]) == 1
+    words = plugin.libs_too_old
+    assert words("1.60.0") == words("1.60.1") == words("1.61.0") == words("2.0.0") == words("1.60.0rc1") == ""
+    assert words("1.6.0").endswith("and this is 1.6.0") and words("1.59.9").endswith("and this is 1.59.9")
+    assert words("") == ("this plugin needs liminal-libs 1.60.0 or newer, and this is a liminal-libs that does not "
+                         "say its version")
+    assert plugin.release_of("1.60.0rc1") == (1, 60, 0) and plugin.release_of("1.59") == (1, 59)
+
+
 def test_the_windows_verdict_from_what_was_read():
     words = plugin.verdict_words
-    assert words({"secure_boot": True, "hvci": True, "test_signing": False}, False)[0] == (
+    read = {"test_signing_readable": True, "test_signing_source": "boot options"}  # liminal-libs 1.60.0's read
+    assert words({"secure_boot": True, "hvci": True, "test_signing": False, **read})[0] == (
         "no: the test-signed runtime cannot load here")
-    assert words({"secure_boot": False, "hvci": False, "test_signing": True, "test_signing_readable": True}, False) == (
+    assert words({"secure_boot": True, "hvci": True})[0] == "no: the test-signed runtime cannot load here"
+    assert words({"secure_boot": False, "hvci": False, "test_signing": True, **read}) == (
         "yes", "test signing is on, so a test-signed driver can load")
-    assert words({"secure_boot": False, "hvci": True, "test_signing": True}, True)[0] == (
+    by_bcdedit = {**read, "test_signing_source": "bcdedit"}
+    assert words({"secure_boot": False, "hvci": True, "test_signing": True, **by_bcdedit})[0] == (
         "yes, as native .sys programs only")
-    assert words({"secure_boot": False, "test_signing": False, "test_signing_readable": True}, True)[0] == (
-        "not as it is: test signing is off")
-    assert words({"secure_boot": False, "test_signing": False, "test_signing_readable": True}, False)[0] == "not known"
-    assert words({}, False) == ("not known", "Secure Boot could not be read")
+    assert words({"secure_boot": False, "test_signing": False, **read})[0] == "not as it is: test signing is off"
+    # a read that names no source, or not one the library reads, is no read: nothing is said of test signing from it
+    for unread in ({"test_signing_readable": True}, {"test_signing_readable": True, "test_signing_source": "unknown"},
+                   {"test_signing_readable": False, "test_signing_source": "boot options"}):
+        assert words({"secure_boot": False, "test_signing": True, **unread}) == (
+            "not known", "Secure Boot is off; test signing could not be read")
+        assert plugin.signing_words({"test_signing": True, **unread}) == (
+            "not read: neither this boot's start options nor bcdedit answered")
+    assert words({}) == ("not known", "Secure Boot could not be read")
 
 
 # -- Compare -------------------------------------------------------------------------------------------------------
@@ -754,13 +807,14 @@ def test_compares_here_column_holds_only_what_was_read_each_saying_where(linux, 
     assert here[("Execution", "HVCI (memory integrity)")] == {"text": "memory integrity on", "sub": "read from "
                                                               "Win32_DeviceGuard, without an administrator"}
     assert here[("Execution", "Interpreter / JIT / native")]["text"] == "no JIT here: memory integrity is on"
-    assert here[("Execution", "Signing and test signing")]["text"] == ("Secure Boot on; test signing off (could not be "
-                                                                       "confirmed without an administrator)")
+    assert here[("Execution", "Signing and test signing")]["text"] == "Secure Boot on; test signing off"
+    assert here[("Execution", "Signing and test signing")]["sub"].endswith(
+        "; the registry (SystemStartOptions: this boot's start options)")
     production = here[("Install and status", "Production or preview")]
     assert production["text"] == "test-signed: no: the test-signed runtime cannot load here"
     assert production["sub"].startswith(r"read here: Secure Boot from the registry (SecureBoot\State); memory "
-                                        "integrity from Win32_DeviceGuard; test signing from bcdedit, not confirmed "
-                                        "without an administrator. ")
+                                        "integrity from Win32_DeviceGuard; test signing from the registry "
+                                        "(SystemStartOptions: this boot's start options). ")
     # nothing of the services or the facts read: none of them said
     x, _, _ = windows(fail_services="Get-Service failed", fail_facts="Access is denied.")
     assert set(here_of(x.compare())) == {("Privileges", "Load and attach"), ("Basic functions", WATCH_ITEM)}
@@ -1141,7 +1195,7 @@ def test_the_plugin_runs_at_most_eight_watches_at_once(linux, windows):
     """The plugin's own service holds the cap (8), through its hooks, on Linux and on Windows (process watches there:
     a net one would ask for the route), and its facts say it out of that cap."""
     for p, card, label in ((linux()[0], "bpftrace", "Watches running"),
-                           (windows()[0], "Event Tracing for Windows (ETW)", "Watches started")):
+                           (windows()[0], "Event Tracing for Windows (ETW)", "Watches running")):
         kinds = ["process"]
         ids = [p.watch_start(kinds)["id"] for _ in range(8)]
         assert p.api_facts()[card][label].startswith("8 of 8: process since ")
@@ -1184,9 +1238,9 @@ def test_a_windows_net_watch_reads_this_machines_way_out(windows, monkeypatch):
     a = plain(p.watch_start(["net", "registry"]))
     assert (a["system"], a["address"], a["kinds"]) == ("windows", "192.168.1.20", ["net", "registry"])
     assert factory.asked == [(frozenset({"net", "registry"}), {"address": "192.168.1.20"})]
-    # started, not said to be reading: a capture lost after it opened is not said yet (the library's Windows watch)
-    assert p.api_facts()["Npcap (packet capture)"]["Net watches started"].startswith("1 of 8: net+registry since ")
-    assert "Watches reading" not in p.api_facts()["Npcap (packet capture)"]
+    # running is reading: a capture lost after it opened ends the watch (liminal-libs 1.60.0's Windows watch)
+    assert p.api_facts()["Npcap (packet capture)"]["Net watches running"].startswith("1 of 8: net+registry since ")
+    assert "Net watches started" not in p.api_facts()["Npcap (packet capture)"]
     p.watch_stop(a["id"])
 
 
@@ -1240,11 +1294,11 @@ def test_api_facts_say_what_was_learned_asking_nothing(linux, windows):
     f = plain(q.api_facts())
     assert set(f) == {"eBPF for Windows", "Npcap (packet capture)", "Event Tracing for Windows (ETW)"}
     assert (f["eBPF for Windows"]["Installed"], f["eBPF for Windows"]["Test signing"]) == (
-        "no", "off (could not be confirmed without an administrator)")
+        "no", "off, read from the registry (SystemStartOptions: this boot's start options)")
     assert f["eBPF for Windows"]["Services"] == "eBPFCore absent; NetEbpfExt absent; eBPFSvc absent"
     assert f["Npcap (packet capture)"]["Administrators only"] == "no"
-    assert f["Npcap (packet capture)"]["Net watches started"] == "none (at most 8 at once)"
-    assert f["Event Tracing for Windows (ETW)"]["Watches started"] == "none (at most 8 at once)"
+    assert f["Npcap (packet capture)"]["Net watches running"] == "none (at most 8 at once)"
+    assert f["Event Tracing for Windows (ETW)"]["Watches running"] == "none (at most 8 at once)"
     assert f["Event Tracing for Windows (ETW)"]["Real-time session"].startswith(
         "may start here: in Performance Log Users")
 
