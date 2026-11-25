@@ -61,6 +61,18 @@ SYMBOLS = ("udp_sendmsg", "udpv6_sendmsg")
 NO_SUDO = "sudo could not run on this machine: [Errno 2] No such file or directory: 'sudo'"  # the library's Shell's
 
 
+def shell_sudo() -> list[str]:
+    """The sudo the library's Shell puts before a command run as root on this machine when the platform is not root,
+    read from Shell.prefix itself (liminal-libs 1.80.0 made it sudo -n --), so the stand-ins follow the library
+    whoever runs the tests."""
+    shell = Shell("local")
+    shell.root = lambda: False  # the platform not root, as on a user's machine
+    return shell.prefix()
+
+
+SUDO = shell_sudo()
+
+
 class Clock:
     """A clock that moves only when the test moves it."""
 
@@ -98,8 +110,10 @@ class FakeLinux:
         self.changes: list[tuple[bool, list[str]]] = []
 
     def __call__(self, args, timeout):
-        root = list(args[:2]) == ["sudo", "-n"]
-        argv = [str(a) for a in (args[2:] if root else args)]
+        # Shell's sudo (SUDO), or the plugin's own sudo -n of WATCH_PROBE, run as it is (root=False: no prefix)
+        lead = len(SUDO) if list(args[:len(SUDO)]) == SUDO else 2 if list(args[:2]) == ["sudo", "-n"] else 0
+        root = lead > 0
+        argv = [str(a) for a in args[lead:]]
         self.commands.append((root, argv))
         if root and not self.sudo:  # as the library's Shell says it when subprocess finds no sudo
             raise CommandError(NO_SUDO)
