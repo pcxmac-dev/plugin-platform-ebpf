@@ -44,6 +44,13 @@ what it read, asks the risky changes twice, and holds the watches.
   detach stops every one and starts none until the plugin is attached again. On Windows, at the plugin's first attach
   on the platform, the ETW sessions a killed platform left are stopped (etw.reclaim_stale_sessions); a capture or an
   ETW session lost after it opened ends its watch, said in the watch's error (liminal-libs 1.60.0).
+- Who may ask (0.1.2, the sweep after the review's PLT-H1; liminal-libs 1.66.0's apps/asking.py): the four changes
+  only from the page (PAGE_ONLY_HOOKS: another plugin's ask is refused, and liminal-platform 0.34.0 asks its login
+  whether you are at the page), the watch service only by another plugin through the platform (PLUGIN_ONLY_HOOKS:
+  never from a page or by a program over HTTP). Before, any program on this PC asked either with two headers: where
+  sudo runs bpftool without a password, a program loaded into the kernel as root, its second confirmation being only
+  an argument; on any machine, a watch started and every process, connection and file open read. The reads are asked
+  by anyone, and the command line calls the code itself.
 - What it attaches to (plugin API 2.2; the user, 2026-11-11: "each plugin should reflect the the API its attached to,
   and present links that provide documentation"): apis.py's cards; `api_facts` says what the last read and the watch
   service learned, asking nothing.
@@ -80,7 +87,7 @@ from liminal_libs.machines.windows import is_elevated
 from .apis import APIS, BPFTOOL, BPFTRACE, EBPF_WINDOWS, ETW, KERNEL, NPCAP, SOURCES, VERIFIED
 from .watch_service import WatchService
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 SYSTEMS = ("linux", "windows")
 READ_S = 60.0  # the runtime read again once its read is this old (the platform asks the status every 30 s)
 FIRST_WAIT_S = 8.0  # how long a status, or a tab, waits for the first read
@@ -857,6 +864,19 @@ class EbpfPlugin(MachinePlugin):
     SECTION = "os"  # under the platform's OS plugins (liminal-platform 0.26.0; the user, 2026-11-15: "then OS plugins")
     HOOKS = (*MachinePlugin.HOOKS, "refresh", "compare", "functions", "show_program", "dump", "load_program",
              "attach_program", "detach_program", "unload_program", "watch_start", "watch_read", "watch_stop")
+    # Its changes, asked only from its page (0.1.2, the sweep after the review's PLT-H1; liminal-libs 1.66.0's
+    # apps/asking.py): another plugin's ask is refused (403), and liminal-platform 0.34.0 refuses one over HTTP (401)
+    # unless its login shows that you are at the page. Before, any program on this PC could ask them with two headers,
+    # the second confirmation (accept_load, accept_attach, accept_unload) being only an argument: where sudo runs
+    # bpftool without a password, a program loaded into the kernel, attached to every packet or every process, an
+    # attachment detached or a pin removed, as root. Its reads are asked by anyone.
+    PAGE_ONLY_HOOKS = ("load_program", "attach_program", "detach_program", "unload_program")
+    # The watch service, asked only by another plugin through the platform, as it was built to be (the firewalls'
+    # Filter tabs, trapdoor): never from a page, which draws none of it, and never by a program over HTTP (403).
+    # Before, any program on this PC started a watch with the same two headers (on Linux bpftrace as root, on Windows
+    # a capture and ETW's sessions) and read every process, connection and file open it saw. The command line calls
+    # the code itself, not through an ask.
+    PLUGIN_ONLY_HOOKS = ("watch_start", "watch_read", "watch_stop")
     # its own tabs after Main and API (apps/tabs.py): the comparison is the same at every ask, its functions follow
     # what the last read found
     TABS = (Tab("compare", "Compare", "compare", 30.0), Tab("functions", "Functions", "functions", 5.0))

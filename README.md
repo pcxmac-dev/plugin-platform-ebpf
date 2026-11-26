@@ -146,6 +146,15 @@ right: whoever asks, the commands still need root, through `sudo -n`. The confir
 for some kinds alone (an attach's device or folder): the page keeps a hidden field's value, so the list under the
 words says what the change uses.
 
+Asked only from the page (0.1.2; the sweep after the independent review's finding PLT-H1, 2026-11-25): `load_program`,
+`attach_program`, `detach_program` and `unload_program` are the plugin's `PAGE_ONLY_HOOKS` (liminal-libs 1.66.0's
+word). Another plugin's ask of one is refused, and liminal-platform 0.34.0 refuses one over HTTP unless its login shows
+that you are at the page. Before, any program on this PC could ask them with two headers and send the second
+confirmation itself: where sudo runs bpftool without a password, that loaded a program into the kernel as root. The
+reads (the status, Read again, the tabs, a program shown, a map dumped) are asked by anyone, as before. The
+platform's check rests on its login's word that your browser is signed in, and a local login signs `secret` and
+`default` in with no password: it does not stop a program on this PC that signs itself in.
+
 On Windows every change is refused, in words: eBPF for Windows' public builds are all test-signed, and on this PC Secure
 Boot and memory integrity keep them from loading. It also loads only native, signed .sys drivers, and only for an
 administrator. Under WSL 1, which has no Linux kernel, every function is refused in words. A program netsh would not
@@ -163,6 +172,12 @@ ebpf for the filter tab"; "trapdoor will monitor all processes"; "trap door uses
 Three hooks for the firewalls' Filter tabs and trapdoor, asked through the platform (plugins never import each other):
 `watch_start`, `watch_read` and `watch_stop`. The page never draws them: no tab, form, action or option names them. One
 `WatchService` (`watch_service.py`) per plugin holds the watches.
+
+Asked only by another plugin (0.1.2): the three are the plugin's `PLUGIN_ONLY_HOOKS` (liminal-libs 1.66.0's word). The
+platform asks them for a plugin's `self.app.ask` alone, and refuses them over HTTP (403), from its page too, and to an
+ask that names no one. Before, any program on this PC could start a watch with two headers (on Linux bpftrace as root,
+on Windows a capture and ETW's sessions) and read every process, connection and file open it saw. The command line
+calls the service in its own process, not through an ask.
 
 - `watch_start(kinds, spec=None)` starts a watch of the caller's own and answers
   `{"id", "kinds", "system", "address", "timeout", "stopped", "error"}`: its id (16 hex characters, not one another
@@ -425,6 +440,10 @@ runtimes and the watches are stand-ins, and a test that reaches the real thing f
   Windows backends driven through the service over stand-in bpftrace, ETW and capture. `subprocess.Popen`, the
   capture's `load_pcap`, ETW's real consumer and the route lookups fail a test that reaches them, and no watch's thread
   may be left after one.
+- `test_who_asks.py`: who may ask, through the library's own App (skipped on a liminal-libs before 1.66.0): the four
+  changes refused to another plugin and to an ask that names no one, every confirmation said, nothing run or read;
+  each run as root when the page asks it; the reads answered to a plugin; the watch service started, read and stopped
+  by another plugin alone, on Linux and on Windows, the page's ask and no one's making no watch.
 
 Run them from this folder, with the library installed or on the path:
 

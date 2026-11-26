@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.1.2 (2026-11-25)
+
+Who may ask its hooks (the sweep after the independent review's finding PLT-H1; the user's choice, 2026-11-25: plugin
+releases, each plugin declaring its change actions page-only). The platform hands an ask over HTTP
+(`POST /api/machines/ebpf/ask`, two headers and no sign-in) straight to a hook, so any program on this PC asked every
+hook this plugin has.
+
+- **The changes are asked only from the page** (`PAGE_ONLY_HOOKS`, liminal-libs 1.66.0's word): `load_program`,
+  `attach_program`, `detach_program` and `unload_program`. Another plugin's ask of one is refused (403), and
+  liminal-platform 0.34.0 refuses one over HTTP (401) unless its login shows that you are at the page. Before, where
+  sudo runs bpftool without a password, a program of any account on this PC had a program loaded into the kernel as
+  root and attached to every packet (XDP) or every process (a cgroup hook), an attachment detached, or any pin under
+  /sys/fs/bpf removed: the second confirmation (`accept_load`, `accept_attach`, `accept_unload`) is an argument the
+  asker sets. On Windows and under WSL 1 every change was refused in words already, and still is. A platform that
+  holds no login asks them as before. The 401 rests on the login's word that your browser is signed in, and a local
+  login signs `secret` and `default` in with no password, so a program on this PC can sign itself in and ask them
+  still: a proof that a program cannot make is the login's and the platform's to give.
+- **The watch service is asked only by another plugin** (`PLUGIN_ONLY_HOOKS`): `watch_start`, `watch_read` and
+  `watch_stop`, for the firewalls' Filter tabs and trapdoor, as it was built. The platform asks them for a plugin's
+  `self.app.ask` alone: over HTTP they are refused (403), from the page too, which never drew them, and so is an ask
+  that names no one. Before, the same program started a watch (on Linux bpftrace as root; on Windows a capture and
+  ETW's sessions, which this PC opens unelevated) and read every process, connection and file open it saw, and on
+  Windows every registry operation, whoever's they were. They are not page-only: no page asks them, and a page-only
+  hook is refused to the plugins they are for. Nothing asks them yet (no plugin's code names them, 2026-11-25).
+- Asked by anyone, as before: `present`, `status`, `refresh`, `compare`, `functions`, `show_program` and `dump`
+  (reads; the last two as root, as Main's listing is). The command line calls the plugin's code in its own process,
+  not through an ask, so `watch KINDS...` works as before.
+- No new floor: a liminal-libs before 1.66.0 holds no hook to who asks it, and liminal-platform 0.34.0 then reads the
+  two words from the plugin itself.
+- Tests: `tests/test_who_asks.py`, through the library's own App over the stand-in machines and watches (skipped on a
+  liminal-libs before 1.66.0): each of the four changes refused to another plugin and to an ask that names no one,
+  every confirmation said, nothing run or read; each run as root when the page asks it; the reads answered to a
+  plugin; the watch service started, read and stopped by another plugin alone, on Linux and on Windows, the page's ask
+  and no one's making no watch. Taking a hook out of either word fails them.
+- `__version__` is 0.1.2, as pyproject says.
+
+Needs liminal-libs>=1.60.0.
+
 ## 0.1.1 (2026-11-16)
 
 On liminal-libs 1.60.0, which fixes what building 0.1.0 found in the library:
