@@ -150,8 +150,10 @@ Asked only from the page (0.1.2; the sweep after the independent review's findin
 `attach_program`, `detach_program` and `unload_program` are the plugin's `PAGE_ONLY_HOOKS` (liminal-libs 1.66.0's
 word). Another plugin's ask of one is refused, and liminal-platform 0.34.0 refuses one over HTTP unless its login shows
 that you are at the page. Before, any program on this PC could ask them with two headers and send the second
-confirmation itself: where sudo runs bpftool without a password, that loaded a program into the kernel as root. The
-reads (the status, Read again, the tabs, a program shown, a map dumped) are asked by anyone, as before. The
+confirmation itself: where sudo runs bpftool without a password, that loaded a program into the kernel as root. Since
+0.1.3 the two reads as root are the page's too: `show_program` and `dump` (the Functions tab's forms; the user's choice
+of 2026-11-25), which gave any asker every field of a loaded program and the entries of any map. The other reads (the
+status, Read again, the tabs) are asked by anyone, as before. The
 platform's check rests on its login's word that your browser is signed in, and a local login signs `secret` and
 `default` in with no password: it does not stop a program on this PC that signs itself in.
 

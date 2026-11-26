@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.3 (2026-11-26)
+
+Its two reads as root are asked only from the page (the user's choice of 2026-11-25, "Root reads and Namecheap").
+
+- **`show_program` and `dump` are page-only** (`PAGE_ONLY_HOOKS`, beside the four changes). On Linux both run bpftool
+  as root through `sudo -n` (on Windows a program is shown through netsh, an administrator's), and answered anyone who
+  asked: another plugin, or a program on this PC over HTTP with two headers, read every field of a loaded program and
+  the first thousand entries of any map, whoever's it was. Now another
+  plugin's ask is refused (403), and so is one that names no one; liminal-platform 0.34.0 refuses one over HTTP (401)
+  unless its login shows that you are at the page. The Functions tab's two forms ask them as before. The same caveat
+  as 0.1.2's: a local login signs `secret` and `default` in with no password, so a program that signs itself in asks
+  them still.
+- Asked by anyone, as before: `present`, `status`, `refresh`, `compare` and `functions`. Main's listing of programs,
+  maps and links is read as root too, through the status every reader is given; it stays as it was (the page and the
+  tray read it).
+- Tests: `tests/test_who_asks.py` names the two reads among the page's hooks, so taking either out fails it: each
+  refused to another plugin and to no one with nothing run, and answered when the page asks it.
+- `__version__` is 0.1.3, as pyproject says.
+
+Needs liminal-libs>=1.60.0.
+
 ## 0.1.2 (2026-11-25)
 
 Who may ask its hooks (the sweep after the independent review's finding PLT-H1; the user's choice, 2026-11-25: plugin

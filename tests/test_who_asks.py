@@ -1,13 +1,14 @@
-"""Who may ask the plugin's changes and its watch service (0.1.2, the sweep after the review's PLT-H1, 2026-11-25). Its
-changes are asked only from its page (PAGE_ONLY_HOOKS, as liminal-libs 1.66.0's apps/asking.py and liminal-platform
-0.34.0 read them): a program loaded into the kernel, attached, detached or unloaded, as root through sudo -n. Another
-plugin's ask is refused, and so is an ask that names no one; over HTTP the platform also asks its login whether you are
-at the page. Its watch service is asked only by another plugin (PLUGIN_ONLY_HOOKS), as it was built to be: the page's
-ask and an ask that names no one are refused. Before, any program on this PC asked either with two headers: where sudo
-runs bpftool without a password a program was loaded into the kernel as root, its second confirmation (accept_load)
-being only an argument, and on any machine a watch was started and all it saw read. Its reads are asked by anyone, as
-before. Asked through the library's own App (its ask names who asks as the platform's does), over conftest's stand-in
-machines and watches: nothing runs."""
+"""Who may ask the plugin's changes, its reads as root and its watch service (0.1.2, the sweep after the review's
+PLT-H1, 2026-11-25; 0.1.3, the user's choice of 2026-11-25: show_program and dump, read through sudo -n, the page's
+too). Its changes are asked only from its page (PAGE_ONLY_HOOKS, as liminal-libs 1.66.0's apps/asking.py and
+liminal-platform 0.34.0 read them): a program loaded into the kernel, attached, detached or unloaded, as root through
+sudo -n. Another plugin's ask is refused, and so is an ask that names no one; over HTTP the platform also asks its login
+whether you are at the page. Its watch service is asked only by another plugin (PLUGIN_ONLY_HOOKS), as it was built to
+be: the page's ask and an ask that names no one are refused. Before, any program on this PC asked either with two
+headers: where sudo runs bpftool without a password a program was loaded into the kernel as root, its second
+confirmation (accept_load) being only an argument, and on any machine a watch was started and all it saw read. Its other
+reads are asked by anyone, as before. Asked through the library's own App (its ask names who asks as the platform's
+does), over conftest's stand-in machines and watches: nothing runs."""
 from __future__ import annotations
 
 import pytest
@@ -22,7 +23,8 @@ from plugin_platform_ebpf import MACHINE  # noqa: E402
 
 CHANGES = ("load_program", "attach_program", "detach_program", "unload_program")
 WATCHES = ("watch_start", "watch_read", "watch_stop")
-READS = ("present", "status", "refresh", "compare", "functions", "show_program", "dump")
+ROOT_READS = ("show_program", "dump")  # reads as root through sudo -n: the page's alone since 0.1.3
+READS = ("present", "status", "refresh", "compare", "functions")
 LOAD = ("/home/you/drop.o", None, "xdp", True)  # a load with its second confirmation said, as a program would send it
 PIN = "/sys/fs/bpf/liminal_drop"
 ASKS = {  # each change as an ask, and the command it runs as root when its page asks it
@@ -83,12 +85,12 @@ def attached():
 
 def test_its_changes_are_said_to_be_the_pages_its_watches_another_plugins_and_its_reads_anyones():
     assert set(ASKS) == set(CHANGES)
-    assert set(internal.page_only(MACHINE)) == set(CHANGES)  # what the platform reads
+    assert set(internal.page_only(MACHINE)) == {*CHANGES, *ROOT_READS}  # what the platform reads
     assert set(internal.plugin_only(MACHINE)) == set(WATCHES)
     assert internal.problems(MACHINE) == []  # each a hook of its own, none in both words, no tab's among the watches
-    assert set(MACHINE.HOOKS) >= {*CHANGES, *WATCHES, *READS}
+    assert set(MACHINE.HOOKS) >= {*CHANGES, *ROOT_READS, *WATCHES, *READS}
     nobody = "This ask names no asker: neither the page nor a plugin."
-    for hook in CHANGES:
+    for hook in (*CHANGES, *ROOT_READS):
         assert asking.refusal(MACHINE, hook, asking.PAGE) == ""
         assert asking.refusal(MACHINE, hook, "neighbour") == (f"ebpf's {hook} is asked only from its page, never by "
                                                               "another plugin: neighbour asked it.")
@@ -119,8 +121,6 @@ def test_another_plugin_or_no_one_asking_a_change_runs_nothing_and_its_page_does
             assert refused.value.status == 403 and refused.value.hook == hook
     assert fake.commands == [] and fake.changes == []  # nothing run as root, and nothing read
     assert neighbour.wants("present") is True and neighbour.wants("status")["valid"]  # its reads, as before
-    assert neighbour.wants("show_program", 31)["said"] == "program 31: liminal_drop, xdp"
-    assert neighbour.wants("dump", 3)["said"] == "map 3: 2 entries"
     assert len(neighbour.wants("functions")["tables"][0]["rows"]) == 9 and neighbour.wants("refresh")["ok"]
     assert fake.changes == []
     for hook in CHANGES:  # its page's form, each confirmation said: run as root, through sudo -n
@@ -128,6 +128,24 @@ def test_another_plugin_or_no_one_asking_a_change_runs_nothing_and_its_page_does
         assert app.from_page(hook, *args)["ok"] is True
         assert fake.changes[-1] == (True, command)
     assert len(fake.changes) == len(CHANGES)
+
+
+def test_its_reads_as_root_are_the_pages_alone(linux, attached):
+    """A program shown and a map dumped, each bpftool as root through sudo -n (0.1.3): asked by another plugin or by no
+    one, refused with nothing run; asked from the page (the Functions tab's forms), answered as before."""
+    p, fake, _ = linux()
+    app, neighbour = attached(p)
+    fake.commands.clear()
+    asks = {"show_program": (31,), "dump": (3,)}
+    for hook, args in asks.items():
+        for ask in (lambda: neighbour.wants(hook, *args), lambda: app.on_its_own(hook, *args)):
+            with pytest.raises(asking.AskRefused, match=f"ebpf's {hook} is asked only from its page") as refused:
+                ask()
+            assert refused.value.status == 403 and refused.value.hook == hook
+    assert fake.commands == []  # nothing read as root
+    assert app.from_page("show_program", 31)["said"] == "program 31: liminal_drop, xdp"
+    assert app.from_page("dump", 3)["said"] == "map 3: 2 entries"
+    assert fake.commands and any(root for root, _ in fake.commands) and fake.changes == []
 
 
 @pytest.mark.parametrize("system", ["linux", "windows"])
