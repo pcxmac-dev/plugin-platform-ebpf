@@ -52,7 +52,9 @@ what it read, asks the risky changes twice, and holds the watches.
   an argument; on any machine, a watch started and every process, connection and file open read. Since 0.1.3 its two
   reads as root, show_program and dump, are page-only too (the user's choice of 2026-11-25), and since 0.1.4 Read
   again (refresh), which reads the runtime as root as well (the user, 2026-11-26: "Page-only"). The status and the
-  tabs are asked by anyone, and the command line calls the code itself.
+  tabs are asked by anyone, and the command line calls the code itself. Since 0.1.5 a status or a tab another plugin
+  asks starts no read (the read that runs sudo -n is started for its page alone) and holds no programs, maps or links
+  table: what the last read listed as root is its page's.
 - What it attaches to (plugin API 2.2; the user, 2026-11-11: "each plugin should reflect the the API its attached to,
   and present links that provide documentation"): apis.py's cards; `api_facts` says what the last read and the watch
   service learned, asking nothing.
@@ -86,14 +88,22 @@ from liminal_libs.machines.linux import Shell
 from liminal_libs.machines.plugin import CommandError, MachinePlugin
 from liminal_libs.machines.windows import is_elevated
 
+try:  # who asks a hook, handed over in so many words (liminal-libs 1.66.0's apps/asking.py)
+    from liminal_libs.apps import asking
+except ImportError:  # an older library hands no one over: every ask is its page's, as before
+    asking = None
+
 from .apis import APIS, BPFTOOL, BPFTRACE, EBPF_WINDOWS, ETW, KERNEL, NPCAP, SOURCES, VERIFIED
 from .watch_service import WatchService
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 SYSTEMS = ("linux", "windows")
 READ_S = 60.0  # the runtime read again once its read is this old (the platform asks the status every 30 s)
 FIRST_WAIT_S = 8.0  # how long a status, or a tab, waits for the first read
 READER = "ebpf-read"  # the reading thread's name
+# what a status another plugin asks says in place of the programs, maps and links (0.1.5)
+LISTS_WORDS = ("the programs, maps and links are listed on its page alone (read as root through sudo -n on Linux), "
+               "and only its page starts a read")
 OBJECTS = ("programs", "maps", "links")  # what the runtime lists, in its order
 BPFTOOL_OBJECTS = {"programs": "prog", "maps": "map", "links": "link"}  # bpftool's word for each
 ROWS = 200  # programs, maps or links listed at most in a table
@@ -723,6 +733,18 @@ def _listed(runtime) -> tuple[dict, dict, tuple, bool]:
     return objects, unread, tuple(asked), False
 
 
+def for_its_page() -> bool:
+    """Whether the ask being answered is its page's (0.1.5; Liminal's complete review, item 14's P2-2): asked from the
+    page (asking.PAGE) or naming no one. Another plugin's ask is not: the MCP plugin's, for an agent you granted this
+    status, or any plugin's through the app. Such an ask of the status or a tab starts no read of the runtime (the read
+    that runs sudo -n on Linux: Read again is the page's, the user, 2026-11-26: "Page-only") and is answered without
+    the programs, maps and links that read listed. An ask that names no one is the page's: liminal-platform 0.42.1
+    draws the plugin's page from GET /api/machines/ebpf, which asks the status naming no one, and the platform's own
+    attach reads so too, so the page cannot be told from it here until the platform names its page there."""
+    who = asking.asker() if asking is not None else None
+    return who is None or who == asking.PAGE
+
+
 @dataclass
 class _Runtime:
     """What the plugin keeps while it lives, shared by its copies (the registry hands out a shallow one): the last
@@ -877,7 +899,8 @@ class EbpfPlugin(MachinePlugin):
     # whoever's it was. Read again (refresh) is the page's as well (0.1.4; the user, 2026-11-26: "Yes, closed by
     # default", and of the reads made with a key or with rights: "Page-only"): it reads the runtime again at once,
     # through sudo -n on Linux. With it every hook says who may ask it (liminal-libs 1.107.0's conformance.warnings
-    # is empty). Its status and its tabs are asked by anyone.
+    # is empty). Its status and its tabs are asked by anyone; asked by another plugin they start no read and hold no
+    # programs, maps or links (0.1.5: for_its_page).
     PAGE_ONLY_HOOKS = ("load_program", "attach_program", "detach_program", "unload_program", "show_program", "dump",
                        "refresh")
     # The watch service, asked only by another plugin through the platform, as it was built to be (the firewalls'
@@ -1041,9 +1064,13 @@ class EbpfPlugin(MachinePlugin):
     def snapshot(self, fresh: bool = False, wait: float = 0.0) -> Snapshot | None:
         """The runtime as last read; read again on a thread when it is older than READ_S (or `fresh`). Only while
         there is no read yet (or `fresh`) is the thread waited for, `wait` seconds at most: an older read is given at
-        once, the new one following."""
+        once, the new one following. Asked by another plugin (for_its_page False, 0.1.5) it starts no read and waits
+        for none: the read as it was kept, or None."""
+        mine = for_its_page()
         with self._rt.lock:
             snap, reader = self._rt.snap, self._rt.reader
+            if not mine:
+                return snap
             stale = snap is None or fresh or self._clock() - snap.at > READ_S
             if stale and reader is None:
                 reader = self._rt.reader = threading.Thread(target=self._read_quietly, name=READER, daemon=True)
@@ -1120,6 +1147,18 @@ class EbpfPlugin(MachinePlugin):
             return {"present": False, "valid": False, "why": too_old, "summary": too_old, "tables": [], "forms": [],
                     "actions": []}
         snap = self.snapshot(wait=FIRST_WAIT_S)
+        if not for_its_page():  # another plugin's ask: no read started, and what the read listed as root left out
+            if snap is None:
+                return {"valid": True, "summary": "this machine's eBPF runtime is not read yet: its page reads it",
+                        "tables": [], "forms": [], "actions": [], "lists": LISTS_WORDS}
+            if snap.error:
+                out = {"valid": True, "summary": "this machine's eBPF runtime could not be read",
+                       "problem": f"the runtime could not be read: {snap.error}", "readAt": self._read_at(snap),
+                       "tables": []}
+            else:
+                out = self._windows_status(snap) if self.system == "windows" else self._linux_status(snap)
+            out.update({"forms": [], "actions": [], "lists": LISTS_WORDS})
+            return out
         if snap is None:
             return {"valid": True, "summary": "reading this machine's eBPF runtime…", "tables": [], "forms": forms(),
                     "actions": [_read_again()]}
@@ -1281,7 +1320,8 @@ class EbpfPlugin(MachinePlugin):
                 "columns": [{"title": "What"}, {"title": "Here"}, {"title": "What it means"}], "rows": rows}
 
     def _object_tables(self, snap: Snapshot) -> list[dict]:
-        return [self._object_table(snap, name) for name in OBJECTS]
+        """Main's programs, maps and links tables: none for another plugin's ask (0.1.5: they were listed as root)."""
+        return [self._object_table(snap, name) for name in OBJECTS] if for_its_page() else []
 
     def _object_table(self, snap: Snapshot, name: str) -> dict:
         """Main's programs, maps or links as read: each row with the button that shows, dumps or detaches it; why

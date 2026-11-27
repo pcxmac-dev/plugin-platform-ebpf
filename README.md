@@ -154,7 +154,14 @@ confirmation itself: where sudo runs bpftool without a password, that loaded a p
 0.1.3 the two reads as root are the page's too: `show_program` and `dump` (the Functions tab's forms; the user's choice
 of 2026-11-25), which gave any asker every field of a loaded program and the entries of any map. Since 0.1.4 Read
 again (`refresh`) is the page's as well: it reads the runtime again at once, as root on Linux (the user, 2026-11-26:
-"Page-only"). The other reads (the status, the tabs) are asked by anyone, as before. The
+"Page-only"). The other reads (the status, the tabs) are asked by anyone, as before, but since 0.1.5 a
+status or a tab another plugin asks (the MCP plugin's, for an agent you granted it, or any plugin's through the app)
+starts no read: it is answered from the read kept, and the status holds no programs, maps or links table (listed as
+root) and none of the page's forms or Read again. Before, a status asked once the last read was over 60 s old started
+the same read as Read again, `sudo -n` and all, for whoever asked. The page's status reads again and holds everything.
+So does one that names no one: liminal-platform 0.42.1 draws the page from `GET /api/machines/ebpf`, which names no
+one, so a program on this PC reading that route still starts the read and sees the listing until the platform names
+its page there. The
 platform's check rests on its login's word that your browser is signed in, and a local login signs `secret` and
 `default` in with no password: it does not stop a program on this PC that signs itself in.
 

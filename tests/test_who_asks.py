@@ -8,9 +8,13 @@ be: the page's ask and an ask that names no one are refused. Before, any program
 headers: where sudo runs bpftool without a password a program was loaded into the kernel as root, its second
 confirmation (accept_load) being only an argument, and on any machine a watch was started and all it saw read. Read
 again (refresh) is the page's alone too (0.1.4; the user, 2026-11-26: "Page-only"); its status and its tabs are asked by
-anyone, as before. Asked through the library's own App (its ask names who asks as the platform's
+anyone, as before, but asked by another plugin they start no read and hold no programs, maps or links (0.1.5). Asked
+through the library's own App (its ask names who asks as the platform's
 does), over conftest's stand-in machines and watches: nothing runs."""
 from __future__ import annotations
+
+import threading
+import types
 
 import pytest
 
@@ -20,6 +24,7 @@ from liminal_libs import internal  # noqa: E402 - after the skip, as each of the
 from liminal_libs.apps import App, asking  # noqa: E402
 from liminal_libs.apps.authorization import EnvironmentLogin  # noqa: E402
 from liminal_libs.machines.plugin import MachinePlugin  # noqa: E402
+import plugin_platform_ebpf as plugin  # noqa: E402
 from plugin_platform_ebpf import MACHINE  # noqa: E402
 
 CHANGES = ("load_program", "attach_program", "detach_program", "unload_program")
@@ -196,3 +201,45 @@ def test_no_hook_is_left_undeclared():
     assert not set(PAGE_READS) & set(internal.declared(MACHINE, "READ_HOOKS"))  # not opened again as a read
     warnings = getattr(conformance, "warnings", None)  # liminal-libs 1.107.0
     assert warnings is None or warnings(MACHINE) == []
+
+
+def test_a_status_or_tab_another_plugin_asks_starts_no_root_read_and_holds_no_listing(linux, attached, clock,
+                                                                                    monkeypatch):
+    """0.1.5 (Liminal's complete review, item 14's P2-2): Read again is the page's (0.1.4), yet a status asked once the
+    last read was older than READ_S started the same read, sudo -n and all, on a thread, for whoever asked. Asked by
+    another plugin (the MCP plugin's, for an agent you granted it), the status and the tabs now start no read: they are
+    answered from the read kept, without its programs, maps and links (listed as root). Its page's status reads again
+    and holds them; so does one naming no one, as the platform (0.42.1) draws the page naming no one. Each reading
+    thread is counted as it is made, so no timing is relied on."""
+    p, fake, _ = linux()
+    app, neighbour = attached(p)
+    started = []
+
+    class Counted(threading.Thread):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            started.append(self.name)
+    monkeypatch.setattr(plugin, "threading", types.SimpleNamespace(**{**vars(threading), "Thread": Counted}))
+    clock.t += plugin.READ_S + 1  # the last read is old: a status of the page's would read again
+    ran = list(fake.commands)
+    told = neighbour.wants("status")
+    for tab in ("compare", "functions"):
+        assert neighbour.wants(tab)["tables"]  # answered, from the read kept
+    assert started == [] and fake.commands == ran  # no thread made, nothing run (sudo -n neither)
+    assert told["valid"] is True and "listed on its page alone" in told["lists"]
+    assert told["forms"] == [] and told["actions"] == []
+    titles = [t["title"] for t in told["tables"]]
+    assert titles and not {"Programs", "Maps", "Links"} & set(titles)
+    assert "liminal_drop" not in repr(told)  # a program the read listed as root
+    whole = app.from_page("status")  # the page's: read again on a thread, and every table
+    assert started == [plugin.READER]
+    assert {"Programs", "Maps", "Links"} <= {t["title"] for t in whole["tables"]} and "lists" not in whole
+    assert "liminal_drop" in repr(whole) and whole["actions"]
+    for t in [t for t in threading.enumerate() if t.name == plugin.READER]:
+        t.join(5)
+    clock.t += plugin.READ_S + 1
+    assert {"Programs", "Maps", "Links"} <= {t["title"] for t in app.on_its_own("status")["tables"]}
+    assert started == [plugin.READER, plugin.READER]  # one naming no one is the page's, as the platform draws it
+    for t in [t for t in threading.enumerate() if t.name == plugin.READER]:
+        t.join(5)
+

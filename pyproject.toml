@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "plugin-platform-ebpf"
-version = "0.1.4"  # the plugin's own release (CHANGELOG.md); the app shows it on the Plugins view
+version = "0.1.5"  # the plugin's own release (CHANGELOG.md); the app shows it on the Plugins view
 description = "The eBPF API plugin for Liminal: this machine's eBPF runtime, the Linux-vs-Windows capability matrix, basic functions, and the watch service the firewalls' Filter tabs and trapdoor ask."
 readme = "README.md"
 requires-python = ">=3.10"

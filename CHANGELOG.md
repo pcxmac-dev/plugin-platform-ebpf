@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.1.5 (2026-11-26)
+
+A status or a tab another plugin asks starts no read as root: Liminal's complete review (Monday-list item 14, finding
+P2-2). 0.1.4 made Read again (`refresh`, the runtime read at once through `sudo -n` on Linux) page-only, yet any
+`status` asked once the last read was over 60 s old (READ_S) started the same read on a thread and returned the
+programs, maps and links it listed. Making `refresh` page-only had only limited how often an asker could start it.
+
+- **Another plugin's `status`, `compare` and `functions`** (the asker the library hands over, `asking.asker()`, names a
+  plugin: the MCP plugin for an agent you granted it, or any plugin through the app) start no read and wait for none:
+  they answer from the read kept. The status holds no programs, maps or links table, no forms and no Read again, and a
+  `lists` line says they are on its page alone; its kernel table and facts stay. All three stay open to anyone.
+- **The page's `status`** (asked as `asking.PAGE`) reads again when the last read is old and holds everything, as
+  before. So does a status that names no one: liminal-platform 0.42.1 draws the page from `GET /api/machines/ebpf`,
+  which asks it naming no one, as does the platform's own attach, so the page cannot be told apart there. A program on
+  this PC reading that route still starts the read until the platform names its page on that route; this plugin then
+  needs one word changed (`for_its_page`).
+- On a library older than 1.66.0, which hands no asker over, every ask is the page's, as before.
+
+Tests: with the last read old, another plugin's status and two tabs make no reading thread (each counted as it is made,
+no timing relied on) and run nothing, and its status lists no program; the page's status makes one and lists them, as
+does one naming no one. Starting the read for every asker again fails it, and so does handing out the listing. No new
+requirement.
+
 ## 0.1.4 (2026-11-26)
 
 Read again is asked only from the page too. The user, 2026-11-26: "Yes, closed by default" (liminal-libs 1.107.0: a
