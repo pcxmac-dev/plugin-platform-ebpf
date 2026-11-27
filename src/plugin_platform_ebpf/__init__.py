@@ -50,8 +50,9 @@ what it read, asks the risky changes twice, and holds the watches.
   never from a page or by a program over HTTP). Before, any program on this PC asked either with two headers: where
   sudo runs bpftool without a password, a program loaded into the kernel as root, its second confirmation being only
   an argument; on any machine, a watch started and every process, connection and file open read. Since 0.1.3 its two
-  reads as root, show_program and dump, are page-only too (the user's choice of 2026-11-25). The other reads are asked
-  by anyone, and the command line calls the code itself.
+  reads as root, show_program and dump, are page-only too (the user's choice of 2026-11-25), and since 0.1.4 Read
+  again (refresh), which reads the runtime as root as well (the user, 2026-11-26: "Page-only"). The status and the
+  tabs are asked by anyone, and the command line calls the code itself.
 - What it attaches to (plugin API 2.2; the user, 2026-11-11: "each plugin should reflect the the API its attached to,
   and present links that provide documentation"): apis.py's cards; `api_facts` says what the last read and the watch
   service learned, asking nothing.
@@ -88,7 +89,7 @@ from liminal_libs.machines.windows import is_elevated
 from .apis import APIS, BPFTOOL, BPFTRACE, EBPF_WINDOWS, ETW, KERNEL, NPCAP, SOURCES, VERIFIED
 from .watch_service import WatchService
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 SYSTEMS = ("linux", "windows")
 READ_S = 60.0  # the runtime read again once its read is this old (the platform asks the status every 30 s)
 FIRST_WAIT_S = 8.0  # how long a status, or a tab, waits for the first read
@@ -873,8 +874,12 @@ class EbpfPlugin(MachinePlugin):
     # attachment detached or a pin removed, as root. Its two reads as root, a program shown and a map dumped, are the
     # page's too (0.1.3, the user's choice of 2026-11-25, "Root reads and Namecheap"): read through sudo -n, they gave
     # any asker every field of a loaded program and every entry of a map,
-    # whoever's it was. Its other reads are asked by anyone.
-    PAGE_ONLY_HOOKS = ("load_program", "attach_program", "detach_program", "unload_program", "show_program", "dump")
+    # whoever's it was. Read again (refresh) is the page's as well (0.1.4; the user, 2026-11-26: "Yes, closed by
+    # default", and of the reads made with a key or with rights: "Page-only"): it reads the runtime again at once,
+    # through sudo -n on Linux. With it every hook says who may ask it (liminal-libs 1.107.0's conformance.warnings
+    # is empty). Its status and its tabs are asked by anyone.
+    PAGE_ONLY_HOOKS = ("load_program", "attach_program", "detach_program", "unload_program", "show_program", "dump",
+                       "refresh")
     # The watch service, asked only by another plugin through the platform, as it was built to be (the firewalls'
     # Filter tabs, trapdoor): never from a page, which draws none of it, and never by a program over HTTP (403).
     # Before, any program on this PC started a watch with the same two headers (on Linux bpftrace as root, on Windows

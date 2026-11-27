@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.4 (2026-11-26)
+
+Read again is asked only from the page too. The user, 2026-11-26: "Yes, closed by default" (liminal-libs 1.107.0: a
+hook a plugin declares for no one is its page's alone), and of the reads made with a key or with rights: "Page-only".
+
+- **`refresh` is page-only** (`PAGE_ONLY_HOOKS`, beside the four changes and the two reads as root). It reads the
+  runtime again at once, through `sudo -n` on Linux. Until now any plugin, and any program on this machine through the
+  platform, could ask it. Another plugin's ask and an ask that names no one are refused (403) in words, and
+  liminal-platform asks its login whether you are at the page (401 otherwise).
+- `present`, `status` and the two tabs (`compare`, `functions`) stay reads anyone here may ask: they answer from what
+  was read last. The watch service stays another plugin's alone.
+- Every hook now says who may ask it, so the library's `conformance.warnings` is empty.
+
+Tests: Read again refused to another plugin and to no one with nothing run, and answered for the page; a test that no
+hook is left undeclared. They fail when `refresh` is taken out of `PAGE_ONLY_HOOKS`, on liminal-libs 1.106.0 and on
+1.107.0 alike. No new requirement: the word is liminal-libs 1.66.0's.
+
 ## 0.1.3 (2026-11-26)
 
 Its two reads as root are asked only from the page (the user's choice of 2026-11-25, "Root reads and Namecheap").

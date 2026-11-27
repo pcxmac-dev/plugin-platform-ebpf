@@ -152,8 +152,9 @@ word). Another plugin's ask of one is refused, and liminal-platform 0.34.0 refus
 that you are at the page. Before, any program on this PC could ask them with two headers and send the second
 confirmation itself: where sudo runs bpftool without a password, that loaded a program into the kernel as root. Since
 0.1.3 the two reads as root are the page's too: `show_program` and `dump` (the Functions tab's forms; the user's choice
-of 2026-11-25), which gave any asker every field of a loaded program and the entries of any map. The other reads (the
-status, Read again, the tabs) are asked by anyone, as before. The
+of 2026-11-25), which gave any asker every field of a loaded program and the entries of any map. Since 0.1.4 Read
+again (`refresh`) is the page's as well: it reads the runtime again at once, as root on Linux (the user, 2026-11-26:
+"Page-only"). The other reads (the status, the tabs) are asked by anyone, as before. The
 platform's check rests on its login's word that your browser is signed in, and a local login signs `secret` and
 `default` in with no password: it does not stop a program on this PC that signs itself in.
 

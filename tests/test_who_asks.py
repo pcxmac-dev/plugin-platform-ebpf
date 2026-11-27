@@ -6,8 +6,9 @@ sudo -n. Another plugin's ask is refused, and so is an ask that names no one; ov
 whether you are at the page. Its watch service is asked only by another plugin (PLUGIN_ONLY_HOOKS), as it was built to
 be: the page's ask and an ask that names no one are refused. Before, any program on this PC asked either with two
 headers: where sudo runs bpftool without a password a program was loaded into the kernel as root, its second
-confirmation (accept_load) being only an argument, and on any machine a watch was started and all it saw read. Its other
-reads are asked by anyone, as before. Asked through the library's own App (its ask names who asks as the platform's
+confirmation (accept_load) being only an argument, and on any machine a watch was started and all it saw read. Read
+again (refresh) is the page's alone too (0.1.4; the user, 2026-11-26: "Page-only"); its status and its tabs are asked by
+anyone, as before. Asked through the library's own App (its ask names who asks as the platform's
 does), over conftest's stand-in machines and watches: nothing runs."""
 from __future__ import annotations
 
@@ -24,7 +25,8 @@ from plugin_platform_ebpf import MACHINE  # noqa: E402
 CHANGES = ("load_program", "attach_program", "detach_program", "unload_program")
 WATCHES = ("watch_start", "watch_read", "watch_stop")
 ROOT_READS = ("show_program", "dump")  # reads as root through sudo -n: the page's alone since 0.1.3
-READS = ("present", "status", "refresh", "compare", "functions")
+PAGE_READS = ("refresh",)  # the runtime read again at once, as root on Linux: the page's alone since 0.1.4
+READS = ("present", "status", "compare", "functions")
 LOAD = ("/home/you/drop.o", None, "xdp", True)  # a load with its second confirmation said, as a program would send it
 PIN = "/sys/fs/bpf/liminal_drop"
 ASKS = {  # each change as an ask, and the command it runs as root when its page asks it
@@ -83,14 +85,14 @@ def attached():
         app.detach(p.name)
 
 
-def test_its_changes_are_said_to_be_the_pages_its_watches_another_plugins_and_its_reads_anyones():
+def test_its_changes_and_read_again_are_said_to_be_the_pages_its_watches_another_plugins_and_its_tabs_anyones():
     assert set(ASKS) == set(CHANGES)
-    assert set(internal.page_only(MACHINE)) == {*CHANGES, *ROOT_READS}  # what the platform reads
+    assert set(internal.page_only(MACHINE)) == {*CHANGES, *ROOT_READS, *PAGE_READS}  # what the platform reads
     assert set(internal.plugin_only(MACHINE)) == set(WATCHES)
     assert internal.problems(MACHINE) == []  # each a hook of its own, none in both words, no tab's among the watches
-    assert set(MACHINE.HOOKS) >= {*CHANGES, *ROOT_READS, *WATCHES, *READS}
+    assert set(MACHINE.HOOKS) >= {*CHANGES, *ROOT_READS, *PAGE_READS, *WATCHES, *READS}
     nobody = "This ask names no asker: neither the page nor a plugin."
-    for hook in (*CHANGES, *ROOT_READS):
+    for hook in (*CHANGES, *ROOT_READS, *PAGE_READS):
         assert asking.refusal(MACHINE, hook, asking.PAGE) == ""
         assert asking.refusal(MACHINE, hook, "neighbour") == (f"ebpf's {hook} is asked only from its page, never by "
                                                               "another plugin: neighbour asked it.")
@@ -121,8 +123,14 @@ def test_another_plugin_or_no_one_asking_a_change_runs_nothing_and_its_page_does
             assert refused.value.status == 403 and refused.value.hook == hook
     assert fake.commands == [] and fake.changes == []  # nothing run as root, and nothing read
     assert neighbour.wants("present") is True and neighbour.wants("status")["valid"]  # its reads, as before
-    assert len(neighbour.wants("functions")["tables"][0]["rows"]) == 9 and neighbour.wants("refresh")["ok"]
-    assert fake.changes == []
+    assert len(neighbour.wants("functions")["tables"][0]["rows"]) == 9
+    assert fake.commands == [] and fake.changes == []  # answered from what was read last
+    for ask in (lambda: neighbour.wants("refresh"), lambda: app.on_its_own("refresh")):  # Read again: the page's alone
+        with pytest.raises(asking.AskRefused, match="ebpf's refresh is asked only from its page") as refused:
+            ask()
+        assert refused.value.status == 403 and refused.value.hook == "refresh"
+    assert fake.commands == [] and fake.changes == []  # the runtime not read again for them
+    assert app.from_page("refresh")["ok"] is True and fake.commands and fake.changes == []
     for hook in CHANGES:  # its page's form, each confirmation said: run as root, through sudo -n
         args, command = ASKS[hook]
         assert app.from_page(hook, *args)["ok"] is True
@@ -173,3 +181,18 @@ def test_the_watch_service_is_another_plugins_alone_never_the_pages_or_no_ones(s
     assert neighbour.wants("watch_read", started["id"])["events"][0]["path"] == "/bin/sh"
     assert neighbour.wants("watch_stop", started["id"]) == {"id": started["id"], "stopped": True, "error": ""}
     assert factory.made[0].stopped and len(factory.made) == 1
+
+
+def test_no_hook_is_left_undeclared():
+    """0.1.4, closed by default (liminal-libs 1.107.0): every hook it answers says who may ask it, so none is left to
+    the default and the library's conformance has no warning. Read from its words, so it holds on an older library."""
+    from liminal_libs.sources import conformance
+
+    said = {h for word in ("READ_HOOKS", "SERVICE_HOOKS", "PLUGIN_ONLY_HOOKS", "PAGE_ONLY_HOOKS")
+            for h in internal.declared(MACHINE, word)} | {t.as_dict()["hook"] for t in MACHINE.TABS}
+    own = [h for h in MACHINE.interface()["hooks"] if h not in ("setup", "run", "scan")]
+    assert own and [h for h in own if h not in said] == []
+    assert set(PAGE_READS) <= set(internal.declared(MACHINE, "PAGE_ONLY_HOOKS"))
+    assert not set(PAGE_READS) & set(internal.declared(MACHINE, "READ_HOOKS"))  # not opened again as a read
+    warnings = getattr(conformance, "warnings", None)  # liminal-libs 1.107.0
+    assert warnings is None or warnings(MACHINE) == []
